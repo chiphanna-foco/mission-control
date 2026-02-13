@@ -1,11 +1,12 @@
 /**
  * ActivityLog Component
- * Displays chronological activity log for a task
+ * Displays chronological activity log for a task with inline comments
  */
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { Send } from 'lucide-react';
 import type { TaskActivity } from '@/lib/types';
 
 interface ActivityLogProps {
@@ -15,6 +16,9 @@ interface ActivityLogProps {
 export function ActivityLog({ taskId }: ActivityLogProps) {
   const [activities, setActivities] = useState<TaskActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [comment, setComment] = useState('');
+  const [posting, setPosting] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     loadActivities();
@@ -34,6 +38,36 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
     }
   };
 
+  const postComment = async () => {
+    if (!comment.trim() || posting) return;
+    setPosting(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity_type: 'comment',
+          message: comment.trim(),
+        }),
+      });
+      if (res.ok) {
+        setComment('');
+        loadActivities();
+      }
+    } catch (error) {
+      console.error('Failed to post comment:', error);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      postComment();
+    }
+  };
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'spawned':
@@ -46,6 +80,8 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
         return '📄';
       case 'status_changed':
         return '🔄';
+      case 'comment':
+        return '💬';
       default:
         return '📝';
     }
@@ -90,21 +126,51 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
     );
   }
 
+  const commentBox = (
+    <div className="flex gap-2 p-3 bg-mc-bg rounded-lg border border-mc-border mb-3">
+      <textarea
+        ref={inputRef}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Add a comment or note... (Enter to send)"
+        rows={2}
+        className="flex-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-mc-text-secondary/50"
+      />
+      <button
+        onClick={postComment}
+        disabled={!comment.trim() || posting}
+        className="self-end p-2 rounded hover:bg-mc-bg-tertiary disabled:opacity-30 transition-colors"
+      >
+        <Send className="w-4 h-4 text-mc-accent" />
+      </button>
+    </div>
+  );
+
   if (activities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-mc-text-secondary">
-        <div className="text-4xl mb-2">📝</div>
-        <p>No activity yet</p>
+      <div>
+        {commentBox}
+        <div className="flex flex-col items-center justify-center py-8 text-mc-text-secondary">
+          <div className="text-4xl mb-2">📝</div>
+          <p>No activity yet</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div>
+      {commentBox}
+      <div className="space-y-3">
       {activities.map((activity) => (
         <div
           key={activity.id}
-          className="flex gap-3 p-3 bg-mc-bg rounded-lg border border-mc-border"
+          className={`flex gap-3 p-3 rounded-lg border ${
+            activity.activity_type === 'comment'
+              ? 'bg-mc-accent/5 border-mc-accent/20'
+              : 'bg-mc-bg border-mc-border'
+          }`}
         >
           {/* Icon */}
           <div className="text-2xl flex-shrink-0">
@@ -144,6 +210,7 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

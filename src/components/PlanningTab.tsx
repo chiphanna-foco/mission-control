@@ -80,6 +80,21 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
     loadState();
   }, [loadState]);
 
+  // Poll for updates when waiting for a response (started but no question yet, or submitting)
+  useEffect(() => {
+    if (!state?.isStarted || state?.isComplete) return;
+    
+    // Poll every 2 seconds when we don't have a current question (waiting for agent)
+    const needsPoll = !state?.currentQuestion && !loading;
+    if (!needsPoll) return;
+
+    const interval = setInterval(() => {
+      loadState();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [state?.isStarted, state?.isComplete, state?.currentQuestion, loading, loadState]);
+
   // Start planning session
   const startPlanning = async () => {
     setStarting(true);
@@ -119,7 +134,9 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          answer: selectedOption === 'other' ? 'Other' : selectedOption,
+          answer: selectedOption === 'other' 
+            ? 'Other' 
+            : state?.currentQuestion?.options.find(o => o.id === selectedOption)?.label || selectedOption,
           otherText: selectedOption === 'other' ? otherText : undefined,
         }),
       });
@@ -146,8 +163,8 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
         } else {
           setState(prev => ({
             ...prev!,
-            currentQuestion: data.currentQuestion,
-            messages: data.messages,
+            currentQuestion: data.currentQuestion || null,
+            messages: data.messages || prev?.messages || [],
           }));
         }
       } else {
@@ -285,13 +302,13 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
 
             <div className="space-y-3">
               {state.currentQuestion.options.map((option) => {
-                const isSelected = selectedOption === option.label;
+                const isSelected = selectedOption === option.id;
                 const isOther = option.id === 'other' || option.label.toLowerCase() === 'other';
 
                 return (
                   <div key={option.id}>
                     <button
-                      onClick={() => setSelectedOption(option.label)}
+                      onClick={() => setSelectedOption(option.id)}
                       disabled={submitting}
                       className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all text-left ${
                         isSelected
@@ -309,7 +326,7 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
                     </button>
 
                     {/* Other text input */}
-                    {isOther && isSelected && (
+                    {isOther && selectedOption === 'other' && (
                       <div className="mt-2 ml-11">
                         <input
                           type="text"
@@ -337,7 +354,7 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
             <div className="mt-6">
               <button
                 onClick={submitAnswer}
-                disabled={!selectedOption || submitting || (selectedOption === 'Other' && !otherText.trim())}
+                disabled={!selectedOption || submitting || (selectedOption === 'other' && !otherText.trim())}
                 className="w-full px-6 py-3 bg-mc-accent text-mc-bg rounded-lg font-medium hover:bg-mc-accent/90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {submitting ? (

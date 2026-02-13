@@ -33,6 +33,8 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     status: task?.status || 'inbox' as TaskStatus,
     assigned_agent_id: task?.assigned_agent_id || '',
     due_date: task?.due_date || '',
+    blocked_on: task?.blocked_on || '',
+    blocked_reason: task?.blocked_reason || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +51,8 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
         status: (!task && usePlanningMode) ? 'planning' : form.status,
         assigned_agent_id: form.assigned_agent_id || null,
         due_date: form.due_date || null,
+        blocked_on: form.blocked_on || null,
+        blocked_reason: form.blocked_reason || null,
         workspace_id: workspaceId || task?.workspace_id || 'default',
       };
 
@@ -76,13 +80,9 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
           // If planning mode is enabled, auto-generate questions and keep modal open
           if (usePlanningMode) {
-            // Trigger question generation in background
-            fetch(`/api/tasks/${savedTask.id}/planning`, { method: 'POST' })
-              .then(() => {
-                // Update our local task reference and switch to planning tab
-                updateTask({ ...savedTask, status: 'planning' });
-              })
-              .catch(console.error);
+            // Update task reference and switch to planning tab — keep modal open
+            updateTask({ ...savedTask, status: 'planning' });
+            setActiveTab('planning');
             
             // Log the planning start
             addEvent({
@@ -92,6 +92,8 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               message: `📋 Planning started for: ${savedTask.title}`,
               created_at: new Date().toISOString(),
             });
+            // Don't close — PlanningTab will handle the POST via "Start Planning" button
+            return;
           }
           onClose();
         }
@@ -290,6 +292,34 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               onChange={(e) => setForm({ ...form, due_date: e.target.value })}
               className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
             />
+          </div>
+
+          {/* Blocked On */}
+          <div className={`p-3 rounded-lg border ${form.blocked_on ? 'bg-red-500/5 border-red-500/30' : 'bg-mc-bg border-mc-border'}`}>
+            <label className="block text-sm font-medium mb-1">🚫 Blocked On</label>
+            <select
+              value={form.blocked_on}
+              onChange={(e) => setForm({ ...form, blocked_on: e.target.value })}
+              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent mb-2"
+            >
+              <option value="">Not blocked</option>
+              <option value="chip">Chip — needs your input</option>
+              <option value="budget">Budget — needs funding</option>
+              <option value="dependency">Dependency — waiting on another task</option>
+              <option value="external">External — waiting on third party</option>
+            </select>
+            {form.blocked_on && (
+              <div>
+                <label className="block text-xs text-mc-text-secondary mb-1">What&apos;s needed?</label>
+                <textarea
+                  value={form.blocked_reason}
+                  onChange={(e) => setForm({ ...form, blocked_reason: e.target.value })}
+                  rows={2}
+                  className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent resize-none"
+                  placeholder="Describe what's blocking this task..."
+                />
+              </div>
+            )}
           </div>
             </form>
           )}

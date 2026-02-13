@@ -219,7 +219,7 @@ export class OpenClawClient extends EventEmitter {
     }, 10000); // 10 seconds between reconnect attempts
   }
 
-  async call<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
+  async call<T = unknown>(method: string, params?: Record<string, unknown>, timeoutMs = 30000): Promise<T> {
     if (!this.ws || !this.connected || !this.authenticated) {
       throw new Error('Not connected to OpenClaw Gateway');
     }
@@ -230,13 +230,12 @@ export class OpenClawClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
 
-      // Timeout after 30 seconds
       setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
           reject(new Error(`Request timeout: ${method}`));
         }
-      }, 30000);
+      }, timeoutMs);
 
       this.ws!.send(JSON.stringify(message));
     });

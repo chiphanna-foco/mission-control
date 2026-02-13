@@ -5,6 +5,7 @@ import { Plus, ChevronRight, GripVertical } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Task, TaskStatus } from '@/lib/types';
 import { TaskModal } from './TaskModal';
+import { BlockedPanel } from './BlockedPanel';
 import { formatDistanceToNow } from 'date-fns';
 
 interface MissionQueueProps {
@@ -93,6 +94,9 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
           New Task
         </button>
       </div>
+
+      {/* Blocked Panel */}
+      <BlockedPanel onTaskClick={(task) => setEditingTask(task)} />
 
       {/* Kanban Columns */}
       <div className="flex-1 flex gap-3 p-3 overflow-x-auto">
@@ -193,6 +197,16 @@ function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
           <div className="flex items-center gap-2 mb-3 py-2 px-3 bg-purple-500/10 rounded-md border border-purple-500/20">
             <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse flex-shrink-0" />
             <span className="text-xs text-purple-400 font-medium">Continue planning</span>
+          </div>
+        )}
+
+        {/* Blocked indicator */}
+        {task.blocked_on && (
+          <div className="flex items-center gap-2 mb-3 py-2 px-3 bg-red-500/10 rounded-md border border-red-500/20">
+            <span className="text-xs">🚫</span>
+            <span className="text-xs text-red-400 font-medium truncate">
+              Waiting on {task.blocked_on === 'chip' ? 'Chip' : task.blocked_on}
+            </span>
           </div>
         )}
 

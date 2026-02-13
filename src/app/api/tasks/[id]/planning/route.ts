@@ -48,7 +48,7 @@ async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role
     }
     
     // Use chat.history API to get session messages
-    const result = await client.call<{ messages: Array<{ role: string; content: Array<{ type: string; text?: string }> }> }>('chat.history', {
+    const result = await client.call<{ messages: Array<{ role: string; content: string | Array<{ type: string; text?: string }> }> }>('chat.history', {
       sessionKey,
       limit: 20,
     });
@@ -57,12 +57,24 @@ async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role
     
     for (const msg of result.messages || []) {
       if (msg.role === 'assistant') {
-        // Extract text content from assistant messages
-        const textContent = msg.content?.find((c) => c.type === 'text');
-        if (textContent?.text) {
+        let text = '';
+        
+        if (typeof msg.content === 'string') {
+          // Content is already a string
+          text = msg.content;
+        } else if (Array.isArray(msg.content)) {
+          // Content is an array of content blocks - concatenate all text blocks
+          text = msg.content
+            .filter((c) => c.type === 'text' && c.text)
+            .map((c) => c.text!)
+            .join('\n');
+        }
+        
+        // Only include non-empty messages (skip partial/streaming responses)
+        if (text && text.trim().length > 5) {
           messages.push({
             role: 'assistant',
-            content: textContent.text
+            content: text
           });
         }
       }
@@ -102,7 +114,7 @@ export async function GET(
     }
 
     // Parse planning messages from JSON
-    let messages = task.planning_messages ? JSON.parse(task.planning_messages) : [];
+    const messages = task.planning_messages ? JSON.parse(task.planning_messages) : [];
     
     // Find the latest question (last assistant message with question structure)
     let lastAssistantMessage = [...messages].reverse().find((m: { role: string }) => m.role === 'assistant');
@@ -184,7 +196,7 @@ export async function POST(
 Task Title: ${task.title}
 Task Description: ${task.description || 'No description provided'}
 
-You are starting a planning session for this task. Read PLANNING.md for your protocol.
+You are starting a planning session for this task.
 
 Generate your FIRST question to understand what the user needs. Remember:
 - Questions must be multiple choice
@@ -210,11 +222,13 @@ Respond with ONLY valid JSON in this format:
 
     // Send planning request to the main session with a special marker
     // The message will be processed by Charlie who will respond with questions
-    await client.call('chat.send', {
+    // Use 'agent' method (not 'chat.send' which doesn't exist in OpenClaw protocol)
+    // This triggers a full agent turn: sends message + waits for LLM response
+    await client.call('agent', {
       sessionKey: sessionKey,
       message: planningPrompt,
       idempotencyKey: `planning-start-${taskId}-${Date.now()}`,
-    });
+    }, 60000);
 
     // Store the session key and initial message
     const messages = [{ role: 'user', content: planningPrompt, timestamp: Date.now() }];
@@ -225,11 +239,11 @@ Respond with ONLY valid JSON in this format:
       WHERE id = ?
     `).run(sessionKey, JSON.stringify(messages), taskId);
 
-    // Poll for response (give OpenClaw time to process)
+    // Poll for response (give OpenClaw time to process - agent may need to read files/think)
     // Use OpenClaw API to get messages
     let response = null;
-    for (let i = 0; i < 30; i++) { // Poll for up to 30 seconds
-      await new Promise(resolve => setTimeout(resolve, 500));
+    for (let i = 0; i < 60; i++) { // Poll for up to 60 seconds (agent may use tools)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Get messages via OpenClaw API
       const transcriptMessages = await getMessagesFromOpenClaw(sessionKey);
@@ -239,9 +253,16 @@ Respond with ONLY valid JSON in this format:
         // Get the last assistant message
         const lastAssistant = [...transcriptMessages].reverse().find(m => m.role === 'assistant');
         if (lastAssistant) {
-          response = lastAssistant.content;
-          console.log('[Planning] Found response in transcript');
-          break;
+          // For planning, we need a response that contains JSON with a "question" or "status" key
+          // Skip partial/streaming responses that don't have valid content yet
+          const parsed = extractJSON(lastAssistant.content);
+          if (parsed && ('question' in parsed || 'status' in parsed)) {
+            response = lastAssistant.content;
+            console.log('[Planning] Found valid JSON response in transcript');
+            break;
+          } else {
+            console.log('[Planning] Found assistant message but no valid JSON yet, continuing poll...');
+          }
         }
       }
     }

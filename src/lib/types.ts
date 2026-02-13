@@ -47,6 +47,9 @@ export interface Task {
   workspace_id: string;
   business_id: string;
   due_date?: string;
+  blocked_on?: string;
+  blocked_reason?: string;
+  tags?: string;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -139,7 +142,7 @@ export interface OpenClawSession {
   updated_at: string;
 }
 
-export type ActivityType = 'spawned' | 'updated' | 'completed' | 'file_created' | 'status_changed';
+export type ActivityType = 'spawned' | 'updated' | 'completed' | 'file_created' | 'status_changed' | 'comment';
 
 export interface TaskActivity {
   id: string;

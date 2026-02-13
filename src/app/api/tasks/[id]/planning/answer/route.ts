@@ -43,7 +43,7 @@ async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role
       await client.connect();
     }
     
-    const result = await client.call<{ messages: Array<{ role: string; content: Array<{ type: string; text?: string }> }> }>('chat.history', {
+    const result = await client.call<{ messages: Array<{ role: string; content: string | Array<{ type: string; text?: string }> }> }>('chat.history', {
       sessionKey,
       limit: 50,
     });
@@ -52,9 +52,19 @@ async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role
     
     for (const msg of result.messages || []) {
       if (msg.role === 'assistant') {
-        const textContent = msg.content?.find((c) => c.type === 'text');
-        if (textContent?.text) {
-          messages.push({ role: 'assistant', content: textContent.text });
+        let text = '';
+        
+        if (typeof msg.content === 'string') {
+          text = msg.content;
+        } else if (Array.isArray(msg.content)) {
+          text = msg.content
+            .filter((c) => c.type === 'text' && c.text)
+            .map((c) => c.text!)
+            .join('\n');
+        }
+        
+        if (text && text.trim().length > 5) {
+          messages.push({ role: 'assistant', content: text });
         }
       }
     }
@@ -154,11 +164,12 @@ If planning is complete, respond with JSON:
       await client.connect();
     }
 
-    await client.call('chat.send', {
-      sessionKey: task.planning_session_key,
+    // Use 'agent' method (not 'chat.send' which doesn't exist in OpenClaw protocol)
+    await client.call('agent', {
+      sessionKey: task.planning_session_key!,
       message: answerPrompt,
       idempotencyKey: `planning-answer-${taskId}-${Date.now()}`,
-    });
+    }, 60000);
 
     // Update messages in DB
     getDb().prepare(`
@@ -170,19 +181,24 @@ If planning is complete, respond with JSON:
     const initialMessages = await getMessagesFromOpenClaw(task.planning_session_key!);
     const initialMsgCount = initialMessages.length;
     
-    for (let i = 0; i < 30; i++) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+    for (let i = 0; i < 60; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const transcriptMessages = await getMessagesFromOpenClaw(task.planning_session_key!);
       console.log('[Planning] Answer poll - API messages:', transcriptMessages.length, 'initial:', initialMsgCount);
       
-      // Check if there's a new assistant message
+      // Check if there's a new assistant message with valid JSON
       if (transcriptMessages.length > initialMsgCount) {
         const lastAssistant = [...transcriptMessages].reverse().find(m => m.role === 'assistant');
         if (lastAssistant) {
-          response = lastAssistant.content;
-          console.log('[Planning] Found new response in transcript');
-          break;
+          const parsed = extractJSON(lastAssistant.content);
+          if (parsed && ('question' in parsed || 'status' in parsed)) {
+            response = lastAssistant.content;
+            console.log('[Planning] Found valid JSON response in transcript');
+            break;
+          } else {
+            console.log('[Planning] Found new assistant message but no valid JSON yet, continuing poll...');
+          }
         }
       }
     }

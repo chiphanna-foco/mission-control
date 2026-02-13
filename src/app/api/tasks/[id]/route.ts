@@ -84,6 +84,18 @@ export async function PATCH(
       updates.push('due_date = ?');
       values.push(body.due_date);
     }
+    if ((body as Record<string, unknown>).blocked_on !== undefined) {
+      updates.push('blocked_on = ?');
+      values.push((body as Record<string, unknown>).blocked_on);
+    }
+    if ((body as Record<string, unknown>).blocked_reason !== undefined) {
+      updates.push('blocked_reason = ?');
+      values.push((body as Record<string, unknown>).blocked_reason);
+    }
+    if ((body as Record<string, unknown>).tags !== undefined) {
+      updates.push('tags = ?');
+      values.push((body as Record<string, unknown>).tags);
+    }
 
     // Track if we need to dispatch task
     let shouldDispatch = false;
