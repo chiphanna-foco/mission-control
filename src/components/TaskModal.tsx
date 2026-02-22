@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Save, Trash2, Activity, Package, Bot, ClipboardList, Plus } from 'lucide-react';
+import { X, Save, Trash2, Activity, Package, Bot, ClipboardList } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { ActivityLog } from './ActivityLog';
 import { DeliverablesList } from './DeliverablesList';
@@ -83,7 +83,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
             // Update task reference and switch to planning tab — keep modal open
             updateTask({ ...savedTask, status: 'planning' });
             setActiveTab('planning');
-            
+
             // Log the planning start
             addEvent({
               id: crypto.randomUUID(),
@@ -125,24 +125,24 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
   const priorities: TaskPriority[] = ['low', 'normal', 'high', 'urgent'];
 
   const tabs = [
-    { id: 'overview' as TabType, label: 'Overview', icon: null },
-    { id: 'planning' as TabType, label: 'Planning', icon: <ClipboardList className="w-4 h-4" /> },
-    { id: 'activity' as TabType, label: 'Activity', icon: <Activity className="w-4 h-4" /> },
-    { id: 'deliverables' as TabType, label: 'Deliverables', icon: <Package className="w-4 h-4" /> },
-    { id: 'sessions' as TabType, label: 'Sessions', icon: <Bot className="w-4 h-4" /> },
+    { id: 'overview' as TabType, label: 'Overview', shortLabel: 'Info', icon: null },
+    { id: 'planning' as TabType, label: 'Planning', shortLabel: 'Plan', icon: <ClipboardList className="w-4 h-4" /> },
+    { id: 'activity' as TabType, label: 'Activity', shortLabel: 'Log', icon: <Activity className="w-4 h-4" /> },
+    { id: 'deliverables' as TabType, label: 'Deliverables', shortLabel: 'Files', icon: <Package className="w-4 h-4" /> },
+    { id: 'sessions' as TabType, label: 'Sessions', shortLabel: 'Sess', icon: <Bot className="w-4 h-4" /> },
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-mc-bg-secondary border border-mc-border rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+      <div className="bg-mc-bg-secondary border border-mc-border rounded-t-xl sm:rounded-lg w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-mc-border flex-shrink-0">
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-base sm:text-lg font-semibold truncate pr-2">
             {task ? task.title : 'Create New Task'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-mc-bg-tertiary rounded"
+            className="p-2 hover:bg-mc-bg-tertiary rounded min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -150,19 +150,20 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
         {/* Tabs - only show for existing tasks */}
         {task && (
-          <div className="flex border-b border-mc-border flex-shrink-0">
+          <div className="flex border-b border-mc-border flex-shrink-0 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-h-[44px] ${
                   activeTab === tab.id
                     ? 'text-mc-accent border-b-2 border-mc-accent'
                     : 'text-mc-text-secondary hover:text-mc-text'
                 }`}
               >
                 {tab.icon}
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -181,7 +182,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               required
-              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent"
               placeholder="What needs to be done?"
             />
           </div>
@@ -193,7 +194,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={3}
-              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent resize-none"
+              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent resize-none"
               placeholder="Add details..."
             />
           </div>
@@ -206,7 +207,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
                   type="checkbox"
                   checked={usePlanningMode}
                   onChange={(e) => setUsePlanningMode(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded border-mc-border"
+                  className="w-5 h-5 sm:w-4 sm:h-4 mt-0.5 rounded border-mc-border"
                 />
                 <div>
                   <span className="font-medium text-sm flex items-center gap-2">
@@ -214,8 +215,8 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
                     Enable Planning Mode
                   </span>
                   <p className="text-xs text-mc-text-secondary mt-1">
-                    Best for complex projects that need detailed requirements. 
-                    You&apos;ll answer a few questions to define scope, goals, and constraints 
+                    Best for complex projects that need detailed requirements.
+                    You&apos;ll answer a few questions to define scope, goals, and constraints
                     before work begins. Skip this for quick, straightforward tasks.
                   </p>
                 </div>
@@ -223,14 +224,14 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Status */}
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}
-                className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+                className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent"
               >
                 {statuses.map((s) => (
                   <option key={s} value={s}>
@@ -246,7 +247,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}
-                className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+                className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent"
               >
                 {priorities.map((p) => (
                   <option key={p} value={p}>
@@ -269,7 +270,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
                   setForm({ ...form, assigned_agent_id: e.target.value });
                 }
               }}
-              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent"
             >
               <option value="">Unassigned</option>
               {agents.map((agent) => (
@@ -290,7 +291,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               type="datetime-local"
               value={form.due_date}
               onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent"
             />
           </div>
 
@@ -300,7 +301,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
             <select
               value={form.blocked_on}
               onChange={(e) => setForm({ ...form, blocked_on: e.target.value })}
-              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent mb-2"
+              className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent mb-2"
             >
               <option value="">Not blocked</option>
               <option value="chip">Chip — needs your input</option>
@@ -315,7 +316,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
                   value={form.blocked_reason}
                   onChange={(e) => setForm({ ...form, blocked_reason: e.target.value })}
                   rows={2}
-                  className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent resize-none"
+                  className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-mc-accent resize-none"
                   placeholder="Describe what's blocking this task..."
                 />
               </div>
@@ -326,8 +327,8 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
           {/* Planning Tab */}
           {activeTab === 'planning' && task && (
-            <PlanningTab 
-              taskId={task.id} 
+            <PlanningTab
+              taskId={task.id}
               onSpecLocked={() => {
                 // Refresh task data when spec is locked
                 window.location.reload();
@@ -360,10 +361,10 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
                   <button
                     type="button"
                     onClick={handleDelete}
-                    className="flex items-center gap-2 px-3 py-2 text-mc-accent-red hover:bg-mc-accent-red/10 rounded text-sm"
+                    className="flex items-center gap-2 px-3 py-2.5 sm:py-2 text-mc-accent-red hover:bg-mc-accent-red/10 rounded text-sm min-h-[44px]"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 </>
               )}
@@ -372,14 +373,14 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm text-mc-text-secondary hover:text-mc-text"
+                className="px-4 py-2.5 sm:py-2 text-sm text-mc-text-secondary hover:text-mc-text min-h-[44px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 bg-mc-accent text-mc-bg rounded text-sm font-medium hover:bg-mc-accent/90 disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 sm:py-2 bg-mc-accent text-mc-bg rounded text-sm font-medium hover:bg-mc-accent/90 disabled:opacity-50 min-h-[44px]"
               >
                 <Save className="w-4 h-4" />
                 {isSubmitting ? 'Saving...' : 'Save'}

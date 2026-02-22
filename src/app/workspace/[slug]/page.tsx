@@ -8,6 +8,7 @@ import { Header } from '@/components/Header';
 import { AgentsSidebar } from '@/components/AgentsSidebar';
 import { MissionQueue } from '@/components/MissionQueue';
 import { LiveFeed } from '@/components/LiveFeed';
+import { MobileNav } from '@/components/MobileNav';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
@@ -17,7 +18,7 @@ import type { Task, Workspace } from '@/lib/types';
 export default function WorkspacePage() {
   const params = useParams();
   const slug = params.slug as string;
-  
+
   const {
     setAgents,
     setTasks,
@@ -29,6 +30,7 @@ export default function WorkspacePage() {
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Connect to SSE for real-time updates
   useSSE();
@@ -60,13 +62,13 @@ export default function WorkspacePage() {
   // Load workspace-specific data
   useEffect(() => {
     if (!workspace) return;
-    
+
     const workspaceId = workspace.id;
 
     async function loadData() {
       try {
         debug.api('Loading workspace data...', { workspaceId });
-        
+
         // Fetch workspace-scoped data
         const [agentsRes, tasksRes, eventsRes] = await Promise.all([
           fetch(`/api/agents?workspace_id=${workspaceId}`),
@@ -199,18 +201,31 @@ export default function WorkspacePage() {
 
   return (
     <div className="h-screen flex flex-col bg-mc-bg overflow-hidden">
-      <Header workspace={workspace} />
+      <Header
+        workspace={workspace}
+        onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+      />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden pb-16 lg:pb-0">
         {/* Agents Sidebar */}
-        <AgentsSidebar workspaceId={workspace.id} />
+        <AgentsSidebar
+          workspaceId={workspace.id}
+          mobileOpen={sidebarOpen}
+          onMobileClose={() => setSidebarOpen(false)}
+        />
 
         {/* Main Content Area */}
         <MissionQueue workspaceId={workspace.id} />
 
-        {/* Live Feed */}
+        {/* Live Feed - hidden on mobile */}
         <LiveFeed />
       </div>
+
+      {/* Mobile Bottom Nav */}
+      <MobileNav
+        workspaceSlug={slug}
+        onAgentsClick={() => setSidebarOpen(true)}
+      />
 
       {/* Debug Panel - only shows when debug mode enabled */}
       <SSEDebugPanel />

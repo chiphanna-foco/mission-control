@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, ChevronRight, Zap, ZapOff, Loader2 } from 'lucide-react';
+import { Plus, ChevronRight, Zap, ZapOff, Loader2, X } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Agent, AgentStatus, OpenClawSession } from '@/lib/types';
 import { AgentModal } from './AgentModal';
@@ -10,9 +10,11 @@ type FilterTab = 'all' | 'working' | 'standby';
 
 interface AgentsSidebarProps {
   workspaceId?: string;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
+export function AgentsSidebar({ workspaceId, mobileOpen, onMobileClose }: AgentsSidebarProps) {
   const { agents, selectedAgent, setSelectedAgent, agentOpenClawSessions, setAgentOpenClawSession } = useMissionControl();
   const [filter, setFilter] = useState<FilterTab>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -109,8 +111,8 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
     return styles[status] || styles.standby;
   };
 
-  return (
-    <aside className="w-64 bg-mc-bg-secondary border-r border-mc-border flex flex-col">
+  const sidebarContent = (
+    <>
       {/* Header */}
       <div className="p-3 border-b border-mc-border">
         <div className="flex items-center justify-between mb-3">
@@ -121,6 +123,15 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
               {agents.length}
             </span>
           </div>
+          {/* Close button for mobile overlay */}
+          {onMobileClose && (
+            <button
+              onClick={onMobileClose}
+              className="lg:hidden p-2 hover:bg-mc-bg-tertiary rounded min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Active Sub-Agents Counter */}
@@ -140,7 +151,7 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`px-3 py-1 text-xs rounded uppercase ${
+              className={`px-3 py-1.5 text-xs rounded uppercase min-h-[44px] lg:min-h-0 ${
                 filter === tab
                   ? 'bg-mc-accent text-mc-bg font-medium'
                   : 'text-mc-text-secondary hover:bg-mc-bg-tertiary'
@@ -169,8 +180,9 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
                 onClick={() => {
                   setSelectedAgent(agent);
                   setEditingAgent(agent);
+                  onMobileClose?.();
                 }}
-                className="w-full flex items-center gap-3 p-2 text-left"
+                className="w-full flex items-center gap-3 p-3 lg:p-2 text-left min-h-[44px]"
               >
                 {/* Avatar */}
                 <div className="text-2xl relative">
@@ -209,7 +221,7 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
                   <button
                     onClick={(e) => handleConnectToOpenClaw(agent, e)}
                     disabled={isConnecting}
-                    className={`w-full flex items-center justify-center gap-2 px-2 py-1 rounded text-xs transition-colors ${
+                    className={`w-full flex items-center justify-center gap-2 px-2 py-2 lg:py-1 rounded text-xs transition-colors min-h-[44px] lg:min-h-0 ${
                       openclawSession
                         ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                         : 'bg-mc-bg text-mc-text-secondary hover:bg-mc-bg-tertiary hover:text-mc-text'
@@ -243,7 +255,7 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
       <div className="p-3 border-t border-mc-border">
         <button
           onClick={() => setShowCreateModal(true)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-mc-bg-tertiary hover:bg-mc-border rounded text-sm text-mc-text-secondary hover:text-mc-text transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-3 lg:py-2 bg-mc-bg-tertiary hover:bg-mc-border rounded text-sm text-mc-text-secondary hover:text-mc-text transition-colors min-h-[44px]"
         >
           <Plus className="w-4 h-4" />
           Add Agent
@@ -261,6 +273,28 @@ export function AgentsSidebar({ workspaceId }: AgentsSidebarProps) {
           workspaceId={workspaceId}
         />
       )}
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex w-64 bg-mc-bg-secondary border-r border-mc-border flex-col">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay sidebar */}
+      {mobileOpen && (
+        <>
+          <div
+            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={onMobileClose}
+          />
+          <aside className="lg:hidden fixed inset-y-0 left-0 w-[280px] max-w-[85vw] bg-mc-bg-secondary border-r border-mc-border flex flex-col z-50 animate-slide-in">
+            {sidebarContent}
+          </aside>
+        </>
+      )}
+    </>
   );
 }

@@ -135,3 +135,10 @@ body {
 .online-glow {
   box-shadow: 0 0 10px var(--mc-accent-green), 0 0 20px var(--mc-accent-green);
 }
+
+/* Mobile-specific: prevent text selection on tap targets */
+@media (max-width: 1023px) {
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
