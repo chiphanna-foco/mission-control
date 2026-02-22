@@ -143,6 +143,21 @@ export async function POST(
       payload: result,
     });
 
+    // If this is a Chip comment, ping Clawdbot via OpenClaw system event
+    if (message && message.startsWith('💬 Chip:')) {
+      try {
+        const task = db.prepare('SELECT title FROM tasks WHERE id = ?').get(taskId) as any;
+        const taskTitle = task?.title || 'Unknown task';
+        const { execSync } = require('child_process');
+        execSync(
+          `openclaw system event --text "MC feedback from Chip on [${taskTitle}]: ${message.replace('💬 Chip: ', '').substring(0, 200)}" --mode now`,
+          { timeout: 5000 }
+        );
+      } catch (e) {
+        console.error('Failed to notify Clawdbot:', e);
+      }
+    }
+
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error('Error creating activity:', error);

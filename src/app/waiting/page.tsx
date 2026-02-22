@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Clock, ChevronDown, ChevronUp, Check, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Clock, ChevronDown, ChevronUp, Check, ArrowLeft, Send } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import type { Task, TaskActivity, TaskPriority } from '@/lib/types';
+
+// DB stores UTC timestamps without Z suffix — append it so JS Date parses correctly
+const utc = (ts: string) => new Date(ts.endsWith('Z') ? ts : ts + 'Z');
 
 interface WaitingTask extends Task {
   activities?: TaskActivity[];
@@ -30,6 +33,8 @@ export default function WaitingPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activities, setActivities] = useState<Record<string, TaskActivity[]>>({});
   const [markingDone, setMarkingDone] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [submittingReply, setSubmittingReply] = useState<string | null>(null);
 
   // Load tasks blocked on chip
   useEffect(() => {
@@ -74,6 +79,35 @@ export default function WaitingPage() {
     } else {
       setExpandedId(taskId);
       loadActivities(taskId);
+    }
+  };
+
+  const handleReply = async (task: WaitingTask) => {
+    const text = replyText[task.id]?.trim();
+    if (!text) return;
+    setSubmittingReply(task.id);
+    try {
+      // Post as activity comment
+      await fetch(`/api/tasks/${task.id}/activities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity_type: 'comment',
+          message: `💬 Chip: ${text}`,
+        }),
+      });
+      // Clear the reply input
+      setReplyText((prev) => ({ ...prev, [task.id]: '' }));
+      // Reload activities for this task
+      const res = await fetch(`/api/tasks/${task.id}/activities`);
+      if (res.ok) {
+        const data = await res.json();
+        setActivities((prev) => ({ ...prev, [task.id]: data }));
+      }
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+    } finally {
+      setSubmittingReply(null);
     }
   };
 
@@ -194,7 +228,7 @@ export default function WaitingPage() {
                     {priorityTasks.map((task) => {
                       const isExpanded = expandedId === task.id;
                       const taskActivities = activities[task.id];
-                      const blockedDuration = formatDistanceToNow(new Date(task.updated_at), { addSuffix: false });
+                      const blockedDuration = formatDistanceToNow(utc(task.updated_at), { addSuffix: false });
 
                       return (
                         <div
@@ -276,12 +310,43 @@ export default function WaitingPage() {
                                       >
                                         <p className="text-mc-text">{activity.message}</p>
                                         <span className="text-mc-text-secondary text-[10px]">
-                                          {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                                          {formatDistanceToNow(utc(activity.created_at), { addSuffix: true })}
                                         </span>
                                       </div>
                                     ))}
                                   </div>
                                 )}
+                              </div>
+
+                              {/* Reply / Feedback */}
+                              <div className="mb-3">
+                                <h4 className="text-xs font-medium text-mc-text-secondary uppercase tracking-wider mb-2">
+                                  Reply / Give Direction
+                                </h4>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={replyText[task.id] || ''}
+                                    onChange={(e) =>
+                                      setReplyText((prev) => ({ ...prev, [task.id]: e.target.value }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleReply(task);
+                                      }
+                                    }}
+                                    placeholder="Type feedback or instructions..."
+                                    className="flex-1 bg-mc-bg border border-mc-border rounded-lg px-3 py-2.5 text-sm text-mc-text placeholder-mc-text-secondary focus:outline-none focus:border-mc-accent min-h-[44px]"
+                                  />
+                                  <button
+                                    onClick={() => handleReply(task)}
+                                    disabled={submittingReply === task.id || !replyText[task.id]?.trim()}
+                                    className="px-4 py-2.5 bg-mc-accent text-mc-bg rounded-lg text-sm font-medium hover:bg-mc-accent/90 disabled:opacity-30 min-h-[44px] min-w-[44px] transition-colors"
+                                  >
+                                    {submittingReply === task.id ? '...' : 'Send'}
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Mark as Done Button */}
