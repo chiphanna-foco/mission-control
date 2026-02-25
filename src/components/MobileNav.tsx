@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutGrid, AlertTriangle, Bot } from 'lucide-react';
+import { LayoutGrid, AlertTriangle, Bot, MessagesSquare } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 
 interface MobileNavProps {
@@ -53,6 +53,18 @@ export function MobileNav({ workspaceSlug, onAgentsClick }: MobileNavProps) {
             )}
           </div>
           <span className="text-[10px] font-medium">Waiting</span>
+        </Link>
+
+        <Link
+          href="/conversations"
+          className={`flex flex-col items-center justify-center gap-1 min-w-[64px] min-h-[44px] px-3 py-2 rounded-lg transition-colors ${
+            pathname === '/conversations'
+              ? 'text-mc-accent'
+              : 'text-mc-text-secondary active:text-mc-text'
+          }`}
+        >
+          <MessagesSquare className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Convos</span>
         </Link>
 
         {onAgentsClick ? (

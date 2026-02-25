@@ -174,4 +174,38 @@ CREATE INDEX IF NOT EXISTS idx_activities_task ON task_activities(task_id, creat
 CREATE INDEX IF NOT EXISTS idx_deliverables_task ON task_deliverables(task_id);
 CREATE INDEX IF NOT EXISTS idx_openclaw_sessions_task ON openclaw_sessions(task_id);
 CREATE INDEX IF NOT EXISTS idx_planning_questions_task ON planning_questions(task_id, sort_order);
+
+-- Conversation events ingested from OpenClaw chats/sessions
+CREATE TABLE IF NOT EXISTS conversation_events (
+  id TEXT PRIMARY KEY,
+  session_key TEXT,
+  thread_id TEXT,
+  channel TEXT,
+  provider TEXT,
+  chat_id TEXT,
+  message_id TEXT,
+  role TEXT,
+  author TEXT,
+  text TEXT,
+  ts INTEGER,
+  metadata_json TEXT,
+  created_at INTEGER
+);
+
+-- Link table: conversation event <-> task
+CREATE TABLE IF NOT EXISTS conversation_task_links (
+  id TEXT PRIMARY KEY,
+  conversation_event_id TEXT NOT NULL REFERENCES conversation_events(id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  created_at INTEGER
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_conversation_events_provider_message
+  ON conversation_events(provider, message_id)
+  WHERE provider IS NOT NULL AND message_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_conversation_events_session_ts ON conversation_events(session_key, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_conversation_events_thread_ts ON conversation_events(thread_id, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_conversation_events_channel_ts ON conversation_events(channel, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_conversation_links_event ON conversation_task_links(conversation_event_id);
+CREATE INDEX IF NOT EXISTS idx_conversation_links_task ON conversation_task_links(task_id);
 `;

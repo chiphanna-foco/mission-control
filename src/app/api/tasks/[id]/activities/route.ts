@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { execSync } from 'child_process';
 import { getDb } from '@/lib/db';
 import { broadcast } from '@/lib/events';
 import type { TaskActivity } from '@/lib/types';
@@ -143,16 +144,17 @@ export async function POST(
       payload: result,
     });
 
-    // If this is a Chip comment, ping Clawdbot via OpenClaw system event
-    if (message && message.startsWith('💬 Chip:')) {
+    // If this is a human comment (no agent_id, comment type), ping Clawdbot via OpenClaw system event
+    if (activity_type === 'comment' && !agent_id) {
       try {
         const task = db.prepare('SELECT title FROM tasks WHERE id = ?').get(taskId) as any;
-        const taskTitle = task?.title || 'Unknown task';
-        const { execSync } = require('child_process');
+        const taskTitle = task?.title || taskId;
+        const cleanMsg = message.replace(/["`$\\]/g, '').substring(0, 200);
         execSync(
-          `openclaw system event --text "MC feedback from Chip on [${taskTitle}]: ${message.replace('💬 Chip: ', '').substring(0, 200)}" --mode now`,
-          { timeout: 5000 }
+          `openclaw system event --text "MC comment from Chip on [${taskTitle}]: ${cleanMsg}" --mode now`,
+          { timeout: 10000 }
         );
+        console.log(`[activities] Notified Clawdbot about comment on ${taskTitle}`);
       } catch (e) {
         console.error('Failed to notify Clawdbot:', e);
       }

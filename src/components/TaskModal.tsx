@@ -329,9 +329,17 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
           {activeTab === 'planning' && task && (
             <PlanningTab
               taskId={task.id}
-              onSpecLocked={() => {
-                // Refresh task data when spec is locked
-                window.location.reload();
+              onSpecLocked={async () => {
+                // Refresh this task in store without hard reloading the whole app
+                try {
+                  const res = await fetch(`/api/tasks/${task.id}`);
+                  if (res.ok) {
+                    const refreshedTask = await res.json();
+                    updateTask(refreshedTask);
+                  }
+                } catch (error) {
+                  console.error('Failed to refresh task after planning lock:', error);
+                }
               }}
             />
           )}

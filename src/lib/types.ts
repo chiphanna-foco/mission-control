@@ -168,6 +168,31 @@ export interface TaskDeliverable {
   created_at: string;
 }
 
+export interface ConversationEvent {
+  id: string;
+  session_key?: string;
+  thread_id?: string;
+  channel?: string;
+  provider?: string;
+  chat_id?: string;
+  message_id?: string;
+  role?: string;
+  author?: string;
+  text?: string;
+  ts?: number;
+  metadata_json?: string;
+  created_at?: number;
+  is_task_candidate?: boolean;
+  linked_task_count?: number;
+}
+
+export interface ConversationTaskLink {
+  id: string;
+  conversation_event_id: string;
+  task_id: string;
+  created_at?: number;
+}
+
 // Planning types
 export type PlanningQuestionType = 'multiple_choice' | 'text' | 'yes_no';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircle, Circle, Lock, AlertCircle, Loader2 } from 'lucide-react';
 
 interface PlanningOption {
@@ -55,6 +55,7 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [otherText, setOtherText] = useState('');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const hasNotifiedSpecLockedRef = useRef(false);
 
   // Load planning state
   const loadState = useCallback(async () => {
@@ -64,7 +65,8 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
         const data = await res.json();
         setState(data);
         
-        if (data.isComplete && onSpecLocked) {
+        if (data.isComplete && onSpecLocked && !hasNotifiedSpecLockedRef.current) {
+          hasNotifiedSpecLockedRef.current = true;
           onSpecLocked();
         }
       }

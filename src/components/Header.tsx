@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Zap, Settings, ChevronLeft, LayoutGrid, Menu } from 'lucide-react';
+import { Zap, Settings, ChevronLeft, LayoutGrid, Menu, MessagesSquare } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { format } from 'date-fns';
 import type { Workspace } from '@/lib/types';
@@ -16,10 +16,11 @@ interface HeaderProps {
 export function Header({ workspace, onMenuToggle }: HeaderProps) {
   const router = useRouter();
   const { agents, tasks, isOnline } = useMissionControl();
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [activeSubAgents, setActiveSubAgents] = useState(0);
 
   useEffect(() => {
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -117,7 +118,7 @@ export function Header({ workspace, onMenuToggle }: HeaderProps) {
       {/* Right: Time & Status */}
       <div className="flex items-center gap-2 md:gap-4">
         <span className="text-mc-text-secondary text-sm font-mono hidden sm:inline">
-          {format(currentTime, 'HH:mm:ss')}
+          {currentTime ? format(currentTime, 'HH:mm:ss') : '--:--:--'}
         </span>
         <div
           className={`flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 rounded border text-xs md:text-sm font-medium ${
@@ -133,6 +134,13 @@ export function Header({ workspace, onMenuToggle }: HeaderProps) {
           />
           <span className="hidden sm:inline">{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
         </div>
+        <button
+          onClick={() => router.push('/conversations')}
+          className="p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary min-h-[44px] min-w-[44px] flex items-center justify-center"
+          title="Conversations"
+        >
+          <MessagesSquare className="w-5 h-5" />
+        </button>
         <button
           onClick={() => router.push('/settings')}
           className="p-2 hover:bg-mc-bg-tertiary rounded text-mc-text-secondary min-h-[44px] min-w-[44px] flex items-center justify-center"
