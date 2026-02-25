@@ -127,23 +127,28 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
   }
 
   const commentBox = (
-    <div className="flex gap-2 p-3 bg-mc-bg rounded-lg border border-mc-border mb-3">
-      <textarea
-        ref={inputRef}
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Add a comment or note... (Enter to send)"
-        rows={2}
-        className="flex-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-mc-text-secondary/50"
-      />
-      <button
-        onClick={postComment}
-        disabled={!comment.trim() || posting}
-        className="self-end p-2 rounded hover:bg-mc-bg-tertiary disabled:opacity-30 transition-colors"
-      >
-        <Send className="w-4 h-4 text-mc-accent" />
-      </button>
+    <div className="p-3 bg-mc-bg rounded-lg border border-mc-border mb-3">
+      <div className="flex gap-2">
+        <textarea
+          ref={inputRef}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Add a comment or note... (Enter to send)"
+          rows={2}
+          className="flex-1 bg-transparent text-sm resize-none focus:outline-none placeholder:text-mc-text-secondary/50"
+        />
+        <button
+          onClick={postComment}
+          disabled={!comment.trim() || posting}
+          className="self-end p-2 rounded hover:bg-mc-bg-tertiary disabled:opacity-30 transition-colors"
+        >
+          <Send className="w-4 h-4 text-mc-accent" />
+        </button>
+      </div>
+      <p className="text-xs text-mc-text-secondary mt-2">
+        Feedback here is linked to this task and pings Clawdbot.
+      </p>
     </div>
   );
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Save, Trash2, Activity, Package, Bot, ClipboardList } from 'lucide-react';
+import { X, Save, Trash2, Activity, Package, Bot, ClipboardList, MessageSquare } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { ActivityLog } from './ActivityLog';
 import { DeliverablesList } from './DeliverablesList';
@@ -127,7 +127,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', shortLabel: 'Info', icon: null },
     { id: 'planning' as TabType, label: 'Planning', shortLabel: 'Plan', icon: <ClipboardList className="w-4 h-4" /> },
-    { id: 'activity' as TabType, label: 'Activity', shortLabel: 'Log', icon: <Activity className="w-4 h-4" /> },
+    { id: 'activity' as TabType, label: 'Chat & Activity', shortLabel: 'Chat', icon: <Activity className="w-4 h-4" /> },
     { id: 'deliverables' as TabType, label: 'Deliverables', shortLabel: 'Files', icon: <Package className="w-4 h-4" /> },
     { id: 'sessions' as TabType, label: 'Sessions', shortLabel: 'Sess', icon: <Bot className="w-4 h-4" /> },
   ];
@@ -174,6 +174,26 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <form onSubmit={handleSubmit} className="space-y-4">
+          {task && (
+            <div className="p-3 bg-mc-accent/10 border border-mc-accent/30 rounded-lg">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Need to respond or give feedback?</p>
+                  <p className="text-xs text-mc-text-secondary mt-1">
+                    Comments in Chat &amp; Activity notify Clawdbot immediately.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('activity')}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded bg-mc-accent text-mc-bg text-xs sm:text-sm font-medium"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Leave feedback
+                </button>
+              </div>
+            </div>
+          )}
           {/* Title */}
           <div>
             <label className="block text-sm font-medium mb-1">Title</label>
