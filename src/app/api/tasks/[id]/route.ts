@@ -97,6 +97,42 @@ export async function PATCH(
       values.push((body as Record<string, unknown>).tags);
     }
 
+    if ((body as Record<string, unknown>).is_priority_today !== undefined) {
+      const nextIsPriority = Number((body as Record<string, unknown>).is_priority_today) ? 1 : 0;
+
+      if (nextIsPriority === 1 && !existing.is_priority_today) {
+        const currentPriorityCount = queryOne<{ count: number }>(
+          'SELECT COUNT(*) as count FROM tasks WHERE workspace_id = ? AND is_priority_today = 1',
+          [existing.workspace_id]
+        )?.count || 0;
+
+        if (currentPriorityCount >= 3) {
+          return NextResponse.json(
+            { error: 'Today’s priorities are limited to 3 tasks' },
+            { status: 400 }
+          );
+        }
+      }
+
+      updates.push('is_priority_today = ?');
+      values.push(nextIsPriority);
+
+      if (nextIsPriority === 0 && (body as Record<string, unknown>).priority_rank === undefined) {
+        updates.push('priority_rank = ?');
+        values.push(null);
+      }
+    }
+
+    if ((body as Record<string, unknown>).priority_rank !== undefined) {
+      updates.push('priority_rank = ?');
+      values.push((body as Record<string, unknown>).priority_rank);
+    }
+
+    if ((body as Record<string, unknown>).priority_note !== undefined) {
+      updates.push('priority_note = ?');
+      values.push((body as Record<string, unknown>).priority_note);
+    }
+
     // Track if we need to dispatch task
     let shouldDispatch = false;
 

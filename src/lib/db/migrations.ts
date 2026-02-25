@@ -192,6 +192,29 @@ const migrations: Migration[] = [
         CREATE INDEX IF NOT EXISTS idx_conversation_links_task ON conversation_task_links(task_id);
       `);
     }
+  },
+  {
+    id: '006',
+    name: 'add_today_priority_fields_to_tasks',
+    up: (db) => {
+      console.log('[Migration 006] Adding today priority fields to tasks...');
+
+      const tasksInfo = db.prepare('PRAGMA table_info(tasks)').all() as { name: string }[];
+
+      if (!tasksInfo.some(col => col.name === 'is_priority_today')) {
+        db.exec('ALTER TABLE tasks ADD COLUMN is_priority_today INTEGER DEFAULT 0');
+      }
+
+      if (!tasksInfo.some(col => col.name === 'priority_rank')) {
+        db.exec('ALTER TABLE tasks ADD COLUMN priority_rank INTEGER');
+      }
+
+      if (!tasksInfo.some(col => col.name === 'priority_note')) {
+        db.exec('ALTER TABLE tasks ADD COLUMN priority_note TEXT');
+      }
+
+      db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_priority_today ON tasks(workspace_id, is_priority_today, priority_rank)');
+    }
   }
 ];
 

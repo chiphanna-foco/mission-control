@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { X, Save, Trash2, Activity, Package, Bot, ClipboardList, MessageSquare } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { ActivityLog } from './ActivityLog';
@@ -19,7 +19,7 @@ interface TaskModalProps {
 }
 
 export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
-  const { agents, addTask, updateTask, addEvent } = useMissionControl();
+  const { agents, tasks, addTask, updateTask, addEvent } = useMissionControl();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [usePlanningMode, setUsePlanningMode] = useState(false);
@@ -121,7 +121,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     }
   };
 
-  const setTaskStatus = async (status: TaskStatus) => {
+  const setTaskStatus = useCallback(async (status: TaskStatus) => {
     // Existing task: persist immediately
     if (task) {
       try {
@@ -143,10 +143,38 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
     // New/unsaved task: just set form state
     setForm((prev) => ({ ...prev, status }));
-  };
+  }, [task, updateTask]);
 
   const statuses: TaskStatus[] = ['planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'done'];
   const priorities: TaskPriority[] = ['low', 'normal', 'high', 'urgent'];
+
+  const toggleTodayPriority = useCallback(async () => {
+    if (!task) return;
+
+    const currentlyPinned = !!task.is_priority_today;
+    const currentPinnedCount = tasks.filter(
+      (t) => t.workspace_id === task.workspace_id && t.is_priority_today
+    ).length;
+
+    if (!currentlyPinned && currentPinnedCount >= 3) {
+      alert("Today's priorities are full (max 3).");
+      return;
+    }
+
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        is_priority_today: currentlyPinned ? 0 : 1,
+        priority_rank: currentlyPinned ? null : currentPinnedCount + 1,
+      }),
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      updateTask(updated);
+    }
+  }, [task, tasks, updateTask]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -184,12 +212,19 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
       if (e.key === 'i' || e.key === 'I') {
         e.preventDefault();
         void setTaskStatus('in_progress');
+        return;
+      }
+
+      // P = toggle today's priority
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        void toggleTodayPriority();
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose, task?.id, setTaskStatus]);
+  }, [onClose, task?.id, setTaskStatus, toggleTodayPriority]);
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', shortLabel: 'Info', icon: null },

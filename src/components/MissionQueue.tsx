@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Plus, ChevronRight, GripVertical } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, ChevronRight, GripVertical, Pin, X } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Task, TaskStatus } from '@/lib/types';
 import { TaskModal } from './TaskModal';
@@ -11,6 +11,8 @@ import { formatDistanceToNow } from 'date-fns';
 interface MissionQueueProps {
   workspaceId?: string;
 }
+
+const MAX_PRIORITIES = 3;
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'planning', label: '📋 PLANNING', color: 'border-t-mc-accent-purple' },
@@ -23,13 +25,33 @@ const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
 ];
 
 export function MissionQueue({ workspaceId }: MissionQueueProps) {
-  const { tasks, updateTaskStatus, addEvent } = useMissionControl();
+  const { tasks, updateTaskStatus, updateTask, addTask, addEvent } = useMissionControl();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [priorityInput, setPriorityInput] = useState('');
+  const [priorityError, setPriorityError] = useState<string | null>(null);
+
+  const workspaceTasks = useMemo(
+    () => tasks.filter((task) => !workspaceId || task.workspace_id === workspaceId),
+    [tasks, workspaceId]
+  );
+
+  const priorityTasks = useMemo(
+    () => workspaceTasks
+      .filter((task) => task.is_priority_today)
+      .sort((a, b) => (a.priority_rank ?? 999) - (b.priority_rank ?? 999) ||
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .slice(0, MAX_PRIORITIES),
+    [workspaceTasks]
+  );
 
   const getTasksByStatus = (status: TaskStatus) =>
-    tasks.filter((task) => task.status === status);
+    workspaceTasks.filter((task) => task.status === status && !task.is_priority_today);
+
+  const clearPriorityErrorSoon = () => {
+    setTimeout(() => setPriorityError(null), 2200);
+  };
 
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     setDraggedTask(task);
@@ -39,6 +61,21 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+  };
+
+  const persistTaskPatch = async (taskId: string, patch: Record<string, unknown>) => {
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error || 'Failed to update task');
+    }
+
+    return res.json();
   };
 
   const handleDrop = async (e: React.DragEvent, targetStatus: TaskStatus) => {
@@ -53,22 +90,15 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
 
     // Persist to API
     try {
-      const res = await fetch(`/api/tasks/${draggedTask.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: targetStatus }),
+      const updated = await persistTaskPatch(draggedTask.id, { status: targetStatus });
+      updateTask(updated);
+      addEvent({
+        id: crypto.randomUUID(),
+        type: targetStatus === 'done' ? 'task_completed' : 'task_status_changed',
+        task_id: draggedTask.id,
+        message: `Task "${draggedTask.title}" moved to ${targetStatus}`,
+        created_at: new Date().toISOString(),
       });
-
-      if (res.ok) {
-        // Add event
-        addEvent({
-          id: crypto.randomUUID(),
-          type: targetStatus === 'done' ? 'task_completed' : 'task_status_changed',
-          task_id: draggedTask.id,
-          message: `Task "${draggedTask.title}" moved to ${targetStatus}`,
-          created_at: new Date().toISOString(),
-        });
-      }
     } catch (error) {
       console.error('Failed to update task status:', error);
       // Revert on error
@@ -76,6 +106,98 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
     }
 
     setDraggedTask(null);
+  };
+
+  const handleDropToPriorities = async (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!draggedTask) return;
+
+    if (draggedTask.is_priority_today) {
+      setDraggedTask(null);
+      return;
+    }
+
+    if (priorityTasks.length >= MAX_PRIORITIES) {
+      setPriorityError('Today\'s priorities are full (max 3).');
+      clearPriorityErrorSoon();
+      setDraggedTask(null);
+      return;
+    }
+
+    const rank = priorityTasks.length + 1;
+    const optimistic = { ...draggedTask, is_priority_today: 1, priority_rank: rank };
+    updateTask(optimistic);
+
+    try {
+      const updated = await persistTaskPatch(draggedTask.id, {
+        is_priority_today: 1,
+        priority_rank: rank,
+      });
+      updateTask(updated);
+    } catch (error) {
+      console.error('Failed to pin task to priorities:', error);
+      setPriorityError('Could not add that task to priorities.');
+      clearPriorityErrorSoon();
+      updateTask(draggedTask);
+    }
+
+    setDraggedTask(null);
+  };
+
+  const handleUnpinPriority = async (task: Task) => {
+    const optimistic = { ...task, is_priority_today: 0, priority_rank: null };
+    updateTask(optimistic);
+
+    try {
+      const updated = await persistTaskPatch(task.id, {
+        is_priority_today: 0,
+        priority_rank: null,
+      });
+      updateTask(updated);
+    } catch (error) {
+      console.error('Failed to remove priority:', error);
+      setPriorityError('Could not remove priority.');
+      clearPriorityErrorSoon();
+      updateTask(task);
+    }
+  };
+
+  const handleCreatePriority = async () => {
+    const title = priorityInput.trim();
+    if (!title) return;
+
+    if (priorityTasks.length >= MAX_PRIORITIES) {
+      setPriorityError('Today\'s priorities are full (max 3).');
+      clearPriorityErrorSoon();
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          workspace_id: workspaceId || 'default',
+          is_priority_today: 1,
+          priority_rank: priorityTasks.length + 1,
+          status: 'inbox',
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to create priority');
+      }
+
+      const newTask = await res.json();
+      addTask(newTask);
+      setPriorityInput('');
+    } catch (error) {
+      console.error('Failed to create priority task:', error);
+      setPriorityError('Could not create priority task.');
+      clearPriorityErrorSoon();
+    }
   };
 
   return (
@@ -98,6 +220,86 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
 
       {/* Blocked Panel */}
       <BlockedPanel onTaskClick={(task) => setEditingTask(task)} />
+
+      {/* Today's Priorities */}
+      <div className="px-3 pt-3">
+        <div
+          className="bg-mc-bg-secondary border border-mc-border rounded-lg p-3"
+          onDragOver={handleDragOver}
+          onDrop={handleDropToPriorities}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Pin className="w-4 h-4 text-mc-accent-yellow" />
+              <h3 className="text-sm font-semibold">Today&apos;s Priorities</h3>
+            </div>
+            <span className="text-xs text-mc-text-secondary">{priorityTasks.length}/{MAX_PRIORITIES}</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+            {Array.from({ length: MAX_PRIORITIES }).map((_, index) => {
+              const task = priorityTasks[index];
+              if (!task) {
+                return (
+                  <div
+                    key={`priority-slot-${index}`}
+                    className="h-20 rounded border border-dashed border-mc-border flex items-center justify-center text-xs text-mc-text-secondary"
+                  >
+                    Drop task here
+                  </div>
+                );
+              }
+
+              return (
+                <div key={task.id} className="relative">
+                  <TaskCard
+                    task={task}
+                    onDragStart={handleDragStart}
+                    onClick={() => setEditingTask(task)}
+                    isDragging={draggedTask?.id === task.id}
+                    compact
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleUnpinPriority(task);
+                    }}
+                    className="absolute top-2 right-2 p-1 rounded bg-mc-bg-tertiary/80 hover:bg-mc-bg-tertiary"
+                    title="Remove from today's priorities"
+                  >
+                    <X className="w-3.5 h-3.5 text-mc-text-secondary" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              value={priorityInput}
+              onChange={(e) => setPriorityInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void handleCreatePriority();
+                }
+              }}
+              placeholder="Add Priority..."
+              className="flex-1 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+            />
+            <button
+              onClick={() => void handleCreatePriority()}
+              className="px-3 py-2 text-sm rounded bg-mc-accent text-mc-bg font-medium hover:bg-mc-accent/90"
+            >
+              Add
+            </button>
+          </div>
+
+          {priorityError && (
+            <p className="text-xs text-mc-accent-red mt-2">{priorityError}</p>
+          )}
+        </div>
+      </div>
 
       {/* Kanban Columns - horizontal scroll on desktop, vertical stack on mobile */}
       <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 overflow-y-auto lg:overflow-x-auto lg:overflow-y-hidden pb-20 lg:pb-3">
@@ -155,9 +357,10 @@ interface TaskCardProps {
   onDragStart: (e: React.DragEvent, task: Task) => void;
   onClick: () => void;
   isDragging: boolean;
+  compact?: boolean;
 }
 
-function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
+function TaskCard({ task, onDragStart, onClick, isDragging, compact = false }: TaskCardProps) {
   const priorityStyles = {
     low: 'text-mc-text-secondary',
     normal: 'text-mc-accent',
@@ -184,19 +387,21 @@ function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
       } ${isPlanning ? 'border-purple-500/40 hover:border-purple-500' : 'border-mc-border/50 hover:border-mc-accent/40'}`}
     >
       {/* Drag handle bar - hidden on touch devices */}
-      <div className="hidden lg:flex items-center justify-center py-1.5 border-b border-mc-border/30 opacity-0 group-hover:opacity-100 transition-opacity">
-        <GripVertical className="w-4 h-4 text-mc-text-secondary/50 cursor-grab" />
-      </div>
+      {!compact && (
+        <div className="hidden lg:flex items-center justify-center py-1.5 border-b border-mc-border/30 opacity-0 group-hover:opacity-100 transition-opacity">
+          <GripVertical className="w-4 h-4 text-mc-text-secondary/50 cursor-grab" />
+        </div>
+      )}
 
       {/* Card content */}
-      <div className="p-3 lg:p-4">
+      <div className={compact ? 'p-2.5' : 'p-3 lg:p-4'}>
         {/* Title */}
-        <h4 className="text-sm font-medium leading-snug line-clamp-2 mb-2 lg:mb-3">
+        <h4 className={`font-medium leading-snug line-clamp-2 ${compact ? 'text-xs mb-2' : 'text-sm mb-2 lg:mb-3'}`}>
           {task.title}
         </h4>
 
         {/* Planning mode indicator */}
-        {isPlanning && (
+        {isPlanning && !compact && (
           <div className="flex items-center gap-2 mb-2 lg:mb-3 py-2 px-3 bg-purple-500/10 rounded-md border border-purple-500/20">
             <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse flex-shrink-0" />
             <span className="text-xs text-purple-400 font-medium">Continue planning</span>
@@ -204,7 +409,7 @@ function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
         )}
 
         {/* Blocked indicator */}
-        {task.blocked_on && (
+        {task.blocked_on && !compact && (
           <div className="flex items-center gap-2 mb-2 lg:mb-3 py-2 px-3 bg-red-500/10 rounded-md border border-red-500/20">
             <span className="text-xs">🚫</span>
             <span className="text-xs text-red-400 font-medium truncate">
@@ -214,7 +419,7 @@ function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
         )}
 
         {/* Assigned agent */}
-        {task.assigned_agent && (
+        {task.assigned_agent && !compact && (
           <div className="flex items-center gap-2 mb-2 lg:mb-3 py-1.5 px-2 bg-mc-bg-tertiary/50 rounded">
             <span className="text-base">{(task.assigned_agent as unknown as { avatar_emoji: string }).avatar_emoji}</span>
             <span className="text-xs text-mc-text-secondary truncate">
@@ -231,9 +436,11 @@ function TaskCard({ task, onDragStart, onClick, isDragging }: TaskCardProps) {
               {task.priority}
             </span>
           </div>
-          <span className="text-[10px] text-mc-text-secondary/60">
-            {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
-          </span>
+          {!compact && (
+            <span className="text-[10px] text-mc-text-secondary/60">
+              {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -50,6 +50,9 @@ export interface Task {
   blocked_on?: string;
   blocked_reason?: string;
   tags?: string;
+  is_priority_today?: number;
+  priority_rank?: number | null;
+  priority_note?: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -268,6 +271,9 @@ export interface CreateTaskRequest {
   created_by_agent_id?: string;
   business_id?: string;
   due_date?: string;
+  is_priority_today?: number;
+  priority_rank?: number | null;
+  priority_note?: string | null;
 }
 
 export interface UpdateTaskRequest extends Partial<CreateTaskRequest> {
