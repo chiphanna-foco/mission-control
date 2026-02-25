@@ -24,7 +24,16 @@ const blockerLabels: Record<string, string> = {
 
 export function BlockedPanel({ onTaskClick }: BlockedPanelProps) {
   const { tasks } = useMissionControl();
-  const blockedTasks = tasks.filter((t) => t.blocked_on && t.status !== 'done');
+
+  const isBlocked = (task: Task) => {
+    const blocker = (task.blocked_on || '').trim().toLowerCase();
+    if (task.status === 'done') return false;
+    if (!blocker) return false;
+    if (['none', 'no', 'n/a', 'na', 'null', 'false'].includes(blocker)) return false;
+    return true;
+  };
+
+  const blockedTasks = tasks.filter(isBlocked);
 
   if (blockedTasks.length === 0) return null;
 
