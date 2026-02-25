@@ -121,28 +121,28 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     }
   };
 
-  const markDone = async () => {
+  const setTaskStatus = async (status: TaskStatus) => {
     // Existing task: persist immediately
     if (task) {
       try {
         const res = await fetch(`/api/tasks/${task.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'done' }),
+          body: JSON.stringify({ status }),
         });
         if (res.ok) {
           const updated = await res.json();
           updateTask(updated);
-          setForm((prev) => ({ ...prev, status: 'done' }));
+          setForm((prev) => ({ ...prev, status }));
         }
       } catch (error) {
-        console.error('Failed to mark task done:', error);
+        console.error(`Failed to set task status to ${status}:`, error);
       }
       return;
     }
 
     // New/unsaved task: just set form state
-    setForm((prev) => ({ ...prev, status: 'done' }));
+    setForm((prev) => ({ ...prev, status }));
   };
 
   const statuses: TaskStatus[] = ['planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'done'];
@@ -164,16 +164,32 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
         return;
       }
 
-      // D = quick mark done when task card is open and user isn't typing
-      if (!isTypingField && (e.key === 'd' || e.key === 'D')) {
+      if (isTypingField) return;
+
+      // D = quick mark done
+      if (e.key === 'd' || e.key === 'D') {
         e.preventDefault();
-        void markDone();
+        void setTaskStatus('done');
+        return;
+      }
+
+      // A = quick move to assigned
+      if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        void setTaskStatus('assigned');
+        return;
+      }
+
+      // I = quick move to in progress
+      if (e.key === 'i' || e.key === 'I') {
+        e.preventDefault();
+        void setTaskStatus('in_progress');
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [onClose, task?.id, markDone]);
+  }, [onClose, task?.id, setTaskStatus]);
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', shortLabel: 'Info', icon: null },
