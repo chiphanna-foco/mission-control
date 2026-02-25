@@ -155,6 +155,32 @@ export async function POST(
           { timeout: 10000 }
         );
         console.log(`[activities] Notified Clawdbot about comment on ${taskTitle}`);
+
+        // Add immediate in-app acknowledgment so users can see the handoff happened
+        const ackId = crypto.randomUUID();
+        db.prepare(`
+          INSERT INTO task_activities (id, task_id, agent_id, activity_type, message, metadata)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          ackId,
+          taskId,
+          null,
+          'updated',
+          '📨 Clawdbot notified. Response will appear here when posted.',
+          JSON.stringify({ source: 'system', kind: 'comment_ack' })
+        );
+
+        broadcast({
+          type: 'activity_logged',
+          payload: {
+            id: ackId,
+            task_id: taskId,
+            activity_type: 'updated',
+            message: '📨 Clawdbot notified. Response will appear here when posted.',
+            metadata: JSON.stringify({ source: 'system', kind: 'comment_ack' }),
+            created_at: new Date().toISOString(),
+          },
+        });
       } catch (e) {
         console.error('Failed to notify Clawdbot:', e);
       }

@@ -366,7 +366,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
           {/* Activity Tab */}
           {activeTab === 'activity' && task && (
-            <ActivityLog taskId={task.id} />
+            <ActivityLog taskId={task.id} task={task} />
           )}
 
           {/* Deliverables Tab */}

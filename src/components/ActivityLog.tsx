@@ -7,13 +7,14 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { Send } from 'lucide-react';
-import type { TaskActivity } from '@/lib/types';
+import type { TaskActivity, Task } from '@/lib/types';
 
 interface ActivityLogProps {
   taskId: string;
+  task?: Task;
 }
 
-export function ActivityLog({ taskId }: ActivityLogProps) {
+export function ActivityLog({ taskId, task }: ActivityLogProps) {
   const [activities, setActivities] = useState<TaskActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
@@ -126,6 +127,15 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
     );
   }
 
+  const needsContext = task?.blocked_on ? (
+    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg mb-3">
+      <p className="text-sm font-medium">What&apos;s needed</p>
+      <p className="text-xs text-mc-text-secondary mt-1">
+        {task.blocked_reason?.trim() || 'This task is marked blocked, but no reason has been added yet.'}
+      </p>
+    </div>
+  ) : null;
+
   const commentBox = (
     <div className="p-3 bg-mc-bg rounded-lg border border-mc-border mb-3">
       <div className="flex gap-2">
@@ -155,6 +165,7 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
   if (activities.length === 0) {
     return (
       <div>
+        {needsContext}
         {commentBox}
         <div className="flex flex-col items-center justify-center py-8 text-mc-text-secondary">
           <div className="text-4xl mb-2">📝</div>
@@ -166,6 +177,7 @@ export function ActivityLog({ taskId }: ActivityLogProps) {
 
   return (
     <div>
+      {needsContext}
       {commentBox}
       <div className="space-y-3">
       {activities.map((activity) => (
