@@ -133,7 +133,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-[70] sm:p-4">
       <div className="bg-mc-bg-secondary border border-mc-border rounded-t-xl sm:rounded-lg w-full sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-mc-border flex-shrink-0">
@@ -362,7 +362,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
         {/* Footer - only show on overview tab */}
         {activeTab === 'overview' && (
-          <div className="flex items-center justify-between p-4 border-t border-mc-border flex-shrink-0">
+          <div className="flex items-center justify-between p-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] sm:pb-4 border-t border-mc-border flex-shrink-0">
             <div className="flex gap-2">
               {task && (
                 <>
