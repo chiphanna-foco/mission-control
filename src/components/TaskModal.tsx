@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, Save, Trash2, Activity, Package, Bot, ClipboardList, MessageSquare } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import { ActivityLog } from './ActivityLog';
@@ -121,8 +121,59 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     }
   };
 
+  const markDone = async () => {
+    // Existing task: persist immediately
+    if (task) {
+      try {
+        const res = await fetch(`/api/tasks/${task.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'done' }),
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          updateTask(updated);
+          setForm((prev) => ({ ...prev, status: 'done' }));
+        }
+      } catch (error) {
+        console.error('Failed to mark task done:', error);
+      }
+      return;
+    }
+
+    // New/unsaved task: just set form state
+    setForm((prev) => ({ ...prev, status: 'done' }));
+  };
+
   const statuses: TaskStatus[] = ['planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'done'];
   const priorities: TaskPriority[] = ['low', 'normal', 'high', 'urgent'];
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      const isTypingField =
+        tag === 'input' ||
+        tag === 'textarea' ||
+        tag === 'select' ||
+        !!target?.isContentEditable;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      // D = quick mark done when task card is open and user isn't typing
+      if (!isTypingField && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        void markDone();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose, task?.id, markDone]);
 
   const tabs = [
     { id: 'overview' as TabType, label: 'Overview', shortLabel: 'Info', icon: null },
