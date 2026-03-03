@@ -54,11 +54,8 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
     const filteredTasks = workspaceTasks.filter((task) => {
       if (task.status !== status || task.is_priority_today) return false;
       
-      // For someday tasks, only show if not snoozed OR snooze period has passed
-      if (status === 'someday' && task.snoozed_until) {
-        return new Date(task.snoozed_until) <= new Date();
-      }
-      
+      // Show all tasks in their status column, including snoozed someday tasks
+      // Snoozed tasks just stay in the Someday column with visual indicators
       return true;
     });
     return filteredTasks;
@@ -469,6 +466,16 @@ function TaskCard({ task, onDragStart, onClick, isDragging, compact = false }: T
           <div className="flex items-center gap-2 mb-2 lg:mb-3 py-2 px-3 bg-purple-500/10 rounded-md border border-purple-500/20">
             <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse flex-shrink-0" />
             <span className="text-xs text-purple-400 font-medium">Continue planning</span>
+          </div>
+        )}
+
+        {/* Snoozed indicator */}
+        {task.status === 'someday' && task.snoozed_until && new Date(task.snoozed_until) > new Date() && !compact && (
+          <div className="flex items-center gap-2 mb-2 lg:mb-3 py-2 px-3 bg-blue-500/10 rounded-md border border-blue-500/20">
+            <span className="text-xs">😴</span>
+            <span className="text-xs text-blue-400 font-medium">
+              Snoozed for {Math.ceil((new Date(task.snoozed_until).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
+            </span>
           </div>
         )}
 
