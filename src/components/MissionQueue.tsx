@@ -346,17 +346,15 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
       </div>
 
       {/* Someday Toggle */}
-      {getSnoozedTasks().length > 0 && (
-        <div className="px-3 pb-2 flex gap-2">
-          <button
-            onClick={() => setShowSomedayColumn(!showSomedayColumn)}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs rounded bg-mc-bg-secondary border border-mc-border hover:bg-mc-border/50 text-mc-text-secondary"
-          >
-            <ChevronRight className={`w-4 h-4 transition-transform ${showSomedayColumn ? 'rotate-90' : ''}`} />
-            <span>💭 Snoozed {getSnoozedTasks().length}</span>
-          </button>
-        </div>
-      )}
+      <div className="px-3 pb-2 flex gap-2">
+        <button
+          onClick={() => setShowSomedayColumn(!showSomedayColumn)}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs rounded bg-mc-bg-secondary border border-mc-border hover:bg-mc-border/50 text-mc-text-secondary"
+        >
+          <ChevronRight className={`w-4 h-4 transition-transform ${showSomedayColumn ? 'rotate-90' : ''}`} />
+          <span>💭 Someday {getSnoozedTasks().length > 0 ? `(${getSnoozedTasks().length} snoozed)` : '(show)'}</span>
+        </button>
+      </div>
 
       {/* Kanban Columns - horizontal scroll on desktop, vertical stack on mobile */}
       <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 overflow-y-auto lg:overflow-x-auto lg:overflow-y-hidden pb-20 lg:pb-3">
