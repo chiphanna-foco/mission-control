@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
           testing: 0,
           review: 0,
           done: 0,
+          someday: 0,
           total: 0
         };
         

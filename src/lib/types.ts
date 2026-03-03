@@ -131,6 +131,7 @@ export interface WorkspaceStats {
     testing: number;
     review: number;
     done: number;
+    someday: number;
     total: number;
   };
   agentCount: number;

@@ -102,8 +102,8 @@ Metadata: ${JSON.stringify(slackMetadata)}
       ]
     );
 
-    if (!result.success) {
-      console.error('[Slack] Failed to create task:', result.error);
+    if (result.changes === 0) {
+      console.error('[Slack] Failed to create task');
       return NextResponse.json(
         { error: 'Failed to create task' },
         { status: 500 }
