@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, CheckCircle, Circle, XCircle, Trash2, Check } from 'lucide-react';
+import { Bot, CheckCircle, Circle, XCircle, Trash2, Check, Eye } from 'lucide-react';
 
 interface SessionWithAgent {
   id: string;
@@ -25,9 +25,10 @@ interface SessionWithAgent {
 
 interface SessionsListProps {
   taskId: string;
+  onSwitchToActivity?: () => void;
 }
 
-export function SessionsList({ taskId }: SessionsListProps) {
+export function SessionsList({ taskId, onSwitchToActivity }: SessionsListProps) {
   const [sessions, setSessions] = useState<SessionWithAgent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,6 +60,26 @@ export function SessionsList({ taskId }: SessionsListProps) {
         return <XCircle className="w-4 h-4 text-red-500" />;
       default:
         return <Circle className="w-4 h-4 text-mc-text-secondary" />;
+    }
+  };
+
+  const getStatusLabel = (session: SessionWithAgent) => {
+    if (session.status === 'completed') return 'Done';
+    if (session.status === 'failed') return 'Failed';
+    // Active: check if recently updated (within 2 min) = working, else standby
+    const lastUpdate = new Date(session.updated_at).getTime();
+    const twoMinAgo = Date.now() - 2 * 60 * 1000;
+    return lastUpdate > twoMinAgo ? 'Working' : 'Standby';
+  };
+
+  const getStatusColor = (session: SessionWithAgent) => {
+    const label = getStatusLabel(session);
+    switch (label) {
+      case 'Working': return 'text-green-400';
+      case 'Standby': return 'text-yellow-400';
+      case 'Done': return 'text-mc-accent';
+      case 'Failed': return 'text-red-400';
+      default: return 'text-mc-text-secondary';
     }
   };
 
@@ -163,18 +184,13 @@ export function SessionsList({ taskId }: SessionsListProps) {
               <span className="font-medium text-mc-text">
                 {session.agent_name || 'Sub-Agent'}
               </span>
-              <span className="text-xs text-mc-text-secondary capitalize">
-                {session.status}
+              <span className={`text-xs font-medium ${getStatusColor(session)}`}>
+                {getStatusLabel(session)}
               </span>
             </div>
 
-            {/* Session ID */}
-            <div className="text-xs text-mc-text-secondary font-mono mb-2 truncate">
-              Session: {session.openclaw_session_id}
-            </div>
-
             {/* Duration and timestamps */}
-            <div className="flex items-center gap-3 text-xs text-mc-text-secondary">
+            <div className="flex items-center gap-3 text-xs text-mc-text-secondary mb-1">
               <span>
                 Duration: {formatDuration(session.created_at, session.ended_at)}
               </span>
@@ -182,11 +198,27 @@ export function SessionsList({ taskId }: SessionsListProps) {
               <span>Started {formatTimestamp(session.created_at)}</span>
             </div>
 
+            {/* Last activity */}
+            <div className="text-xs text-mc-text-secondary mb-2">
+              Last activity: {formatTimestamp(session.updated_at)}
+            </div>
+
             {/* Channel */}
             {session.channel && (
-              <div className="mt-2 text-xs text-mc-text-secondary">
+              <div className="text-xs text-mc-text-secondary mb-2">
                 Channel: <span className="font-mono">{session.channel}</span>
               </div>
+            )}
+
+            {/* View Activity button */}
+            {onSwitchToActivity && (
+              <button
+                onClick={onSwitchToActivity}
+                className="inline-flex items-center gap-1 text-xs text-mc-accent hover:text-mc-accent/80 transition-colors"
+              >
+                <Eye className="w-3 h-3" />
+                View Activity
+              </button>
             )}
           </div>
 

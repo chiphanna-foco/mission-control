@@ -52,10 +52,15 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [otherText, setOtherText] = useState('');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const hasNotifiedSpecLockedRef = useRef(false);
+  const [waitingTooLong, setWaitingTooLong] = useState(false);
+  const [startingBuild, setStartingBuild] = useState(false);
+  const [buildStarted, setBuildStarted] = useState(false);
+  const waitingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load planning state
   const loadState = useCallback(async () => {
@@ -82,6 +87,25 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
     loadState();
   }, [loadState]);
 
+  // Auto-start planning when state loads and hasn't been started yet
+  useEffect(() => {
+    if (state && !state.isStarted && !state.isComplete && !starting) {
+      startPlanning();
+    }
+    // Also handle stuck state: started but no question generated (API timed out)
+    if (state && state.isStarted && !state.currentQuestion && !state.isComplete && !starting && !loading) {
+      // Reset and restart
+      fetch(`/api/tasks/${taskId}/planning?reset=true`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.currentQuestion) {
+            setState(prev => prev ? { ...prev, currentQuestion: data.currentQuestion, messages: data.messages || prev.messages } : prev);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [state?.isStarted, state?.isComplete, state?.currentQuestion, loading]);
+
   // Poll for updates when waiting for a response (started but no question yet, or submitting)
   useEffect(() => {
     if (!state?.isStarted || state?.isComplete) return;
@@ -96,6 +120,79 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
 
     return () => clearInterval(interval);
   }, [state?.isStarted, state?.isComplete, state?.currentQuestion, loading, loadState]);
+
+  // Track how long we've been waiting for a question
+  useEffect(() => {
+    if (state?.isStarted && !state?.currentQuestion && !state?.isComplete) {
+      waitingTimerRef.current = setTimeout(() => {
+        setWaitingTooLong(true);
+      }, 20000);
+    } else {
+      setWaitingTooLong(false);
+      if (waitingTimerRef.current) {
+        clearTimeout(waitingTimerRef.current);
+        waitingTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (waitingTimerRef.current) {
+        clearTimeout(waitingTimerRef.current);
+      }
+    };
+  }, [state?.isStarted, state?.currentQuestion, state?.isComplete]);
+
+  // Skip Q&A — use description defaults
+  const skipToDefaults = async () => {
+    setSkipping(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/planning/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useDefaults: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setState(prev => prev ? {
+          ...prev,
+          isComplete: true,
+          spec: data.spec,
+          agents: data.agents,
+          currentQuestion: undefined,
+        } : prev);
+        if (onSpecLocked) onSpecLocked();
+      } else {
+        setError(data.error || 'Failed to skip planning');
+      }
+    } catch {
+      setError('Failed to skip planning');
+    } finally {
+      setSkipping(false);
+    }
+  };
+
+  // Retry: reset and restart planning
+  const retryPlanning = async () => {
+    setWaitingTooLong(false);
+    setStarting(true);
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/planning?reset=true`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setState(prev => prev ? {
+          ...prev,
+          sessionKey: data.sessionKey,
+          messages: data.messages || [],
+          currentQuestion: data.currentQuestion || null,
+          isStarted: true,
+        } : prev);
+      }
+    } catch {
+      setError('Failed to retry planning');
+    } finally {
+      setStarting(false);
+    }
+  };
 
   // Start planning session
   const startPlanning = async () => {
@@ -225,6 +322,37 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
           )}
         </div>
         
+        {/* Start Building CTA */}
+        {!buildStarted ? (
+          <button
+            onClick={async () => {
+              setStartingBuild(true);
+              try {
+                await fetch(`/api/tasks/${taskId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: 'in_progress' }),
+                });
+                setBuildStarted(true);
+              } catch (err) {
+                console.error('Failed to start build:', err);
+              } finally {
+                setStartingBuild(false);
+              }
+            }}
+            disabled={startingBuild}
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-medium transition-colors disabled:opacity-50"
+          >
+            {startingBuild ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>🚀</span>}
+            {startingBuild ? 'Starting...' : 'Start Building'}
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 text-green-400 text-sm p-3 bg-green-500/10 rounded-lg border border-green-500/30">
+            <CheckCircle className="w-4 h-4" />
+            <span>Task moved to In Progress — ready for agent execution.</span>
+          </div>
+        )}
+
         {/* Generated Agents */}
         {state.agents && state.agents.length > 0 && (
           <div>
@@ -353,7 +481,7 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
             )}
 
             {/* Submit button */}
-            <div className="mt-6">
+            <div className="mt-6 space-y-3">
               <button
                 onClick={submitAnswer}
                 disabled={!selectedOption || submitting || (selectedOption === 'other' && !otherText.trim())}
@@ -368,13 +496,36 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
                   'Continue →'
                 )}
               </button>
+              <button
+                onClick={skipToDefaults}
+                disabled={skipping}
+                className="w-full px-4 py-2 text-xs text-mc-text-secondary hover:text-mc-text transition-colors disabled:opacity-50"
+              >
+                {skipping ? 'Skipping...' : 'Skip — use description defaults'}
+              </button>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin text-mc-accent mx-auto mb-2" />
-              <p className="text-mc-text-secondary">Waiting for next question...</p>
+              {waitingTooLong ? (
+                <>
+                  <AlertCircle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-mc-text-secondary mb-3">Taking longer than expected...</p>
+                  <button
+                    onClick={retryPlanning}
+                    disabled={starting}
+                    className="px-4 py-2 text-sm bg-mc-accent text-mc-bg rounded hover:bg-mc-accent/90 disabled:opacity-50"
+                  >
+                    {starting ? 'Retrying...' : 'Retry'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="w-8 h-8 animate-spin text-mc-accent mx-auto mb-2" />
+                  <p className="text-mc-text-secondary">Generating question...</p>
+                </>
+              )}
             </div>
           </div>
         )}

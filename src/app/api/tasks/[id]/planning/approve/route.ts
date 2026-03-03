@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import type { PlanningQuestion, PlanningCategory } from '@/lib/types';
 
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
+
+async function callOpenClawHTTP(sessionKey: string, message: string): Promise<string> {
+  const httpUrl = GATEWAY_URL.replace(/^ws/, 'http');
+  const response = await fetch(`${httpUrl}/v1/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GATEWAY_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-sonnet-4-20250514',
+      messages: [{ role: 'user', content: message }],
+      max_tokens: 4096,
+      'x-session-key': sessionKey,
+    }),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`OpenClaw HTTP API error ${response.status}: ${text}`);
+  }
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+function extractJSON(text: string): object | null {
+  try { return JSON.parse(text.trim()); } catch { /* continue */ }
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) { try { return JSON.parse(codeBlockMatch[1].trim()); } catch { /* continue */ } }
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try { return JSON.parse(text.slice(firstBrace, lastBrace + 1)); } catch { /* continue */ }
+  }
+  return null;
+}
+
 // Generate markdown spec from answered questions
 function generateSpecMarkdown(task: { title: string; description?: string }, questions: PlanningQuestion[]): string {
   const lines: string[] = [];
@@ -82,6 +120,66 @@ export async function POST(
       return NextResponse.json({ error: 'Spec already locked' }, { status: 400 });
     }
 
+    // Handle useDefaults: skip Q&A, generate spec from description via OpenClaw
+    const body = await request.json().catch(() => ({}));
+    if (body.useDefaults) {
+      const sessionKey = `agent:main:planning-skip:${taskId}-${Date.now()}`;
+      const prompt = `Generate a complete project spec from this task description. Return ONLY valid JSON.
+
+Task: ${task.title}
+Description: ${task.description || 'No description provided'}
+
+Return JSON:
+{
+  "title": "${task.title}",
+  "summary": "...",
+  "deliverables": ["..."],
+  "success_criteria": ["..."],
+  "constraints": {}
+}`;
+
+      let spec: Record<string, unknown> | null = null;
+      try {
+        const raw = await callOpenClawHTTP(sessionKey, prompt);
+        spec = extractJSON(raw) as Record<string, unknown> | null;
+      } catch (err) {
+        console.error('[Planning Skip] OpenClaw call failed:', err);
+      }
+
+      if (!spec) {
+        // Fallback: generate a basic spec from the description
+        spec = {
+          title: task.title,
+          summary: task.description || 'No description provided',
+          deliverables: [],
+          success_criteria: [],
+          constraints: {},
+        };
+      }
+
+      const specMarkdown = `# ${task.title}\n\n**Status:** SPEC LOCKED ✅\n\n## Summary\n${(spec.summary as string) || task.description || ''}\n\n---\n*Spec locked (defaults) at ${new Date().toISOString()}*`;
+
+      const specId = crypto.randomUUID();
+      getDb().prepare(`
+        INSERT INTO planning_specs (id, task_id, spec_markdown, locked_at)
+        VALUES (?, ?, ?, datetime('now'))
+      `).run(specId, taskId, specMarkdown);
+
+      getDb().prepare(`
+        UPDATE tasks
+        SET description = ?, status = 'inbox', planning_complete = 1, planning_spec = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).run(specMarkdown, JSON.stringify(spec), taskId);
+
+      const activityId = crypto.randomUUID();
+      getDb().prepare(`
+        INSERT INTO task_activities (id, task_id, activity_type, message)
+        VALUES (?, ?, 'status_changed', 'Planning skipped — spec generated from description defaults')
+      `).run(activityId, taskId);
+
+      return NextResponse.json({ success: true, spec, specMarkdown });
+    }
+
     // Get all questions
     const questions = getDb().prepare(
       'SELECT * FROM planning_questions WHERE task_id = ? ORDER BY sort_order'
@@ -90,7 +188,7 @@ export async function POST(
     // Check if all questions are answered
     const unanswered = questions.filter(q => !q.answer);
     if (unanswered.length > 0) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: 'All questions must be answered before locking',
         unanswered: unanswered.length
       }, { status: 400 });

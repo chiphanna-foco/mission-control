@@ -15,10 +15,10 @@ import type { TaskActivity } from '@/lib/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const db = getDb();
 
     // Get activities with agent info
@@ -73,10 +73,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const body = await request.json();
     
     const { activity_type, message, agent_id, metadata } = body;
@@ -144,6 +144,21 @@ export async function POST(
       payload: result,
     });
 
+    // If this is an agent update, notify Chip in Slack
+    if (agent_id && activity_type !== 'system') {
+      try {
+        const task = db.prepare('SELECT title FROM tasks WHERE id = ?').get(taskId) as any;
+        const taskTitle = task?.title || taskId;
+        const preview = message.replace(/["`$\\]/g, '').substring(0, 300);
+        execSync(
+          `openclaw message send --channel slack --target D0ABQHX4PL4 --message "📋 *MC Update — ${taskTitle}*\\n${preview}"`,
+          { timeout: 10000 }
+        );
+      } catch (e) {
+        console.error('[activities] Failed to send Slack notification:', e);
+      }
+    }
+
     // If this is a human comment (no agent_id, comment type), ping Clawdbot via OpenClaw system event
     if (activity_type === 'comment' && !agent_id) {
       try {
@@ -151,7 +166,7 @@ export async function POST(
         const taskTitle = task?.title || taskId;
         const cleanMsg = message.replace(/["`$\\]/g, '').substring(0, 200);
         execSync(
-          `openclaw system event --text "MC comment from Chip on [${taskTitle}]: ${cleanMsg}" --mode now`,
+          `openclaw system event --text "MC comment from Chip on [${taskTitle}] (task_id:${taskId}): ${cleanMsg}" --mode now`,
           { timeout: 10000 }
         );
         console.log(`[activities] Notified Clawdbot about comment on ${taskTitle}`);
@@ -178,6 +193,36 @@ export async function POST(
             activity_type: 'updated',
             message: '📨 Clawdbot notified. Response will appear here when posted.',
             metadata: JSON.stringify({ source: 'system', kind: 'comment_ack' }),
+            created_at: new Date().toISOString(),
+          },
+        });
+
+        // Guaranteed immediate human-visible response in the task thread (even if async bridge is delayed)
+        const chipAi = db.prepare(`SELECT id FROM agents WHERE name = 'ChipAI' LIMIT 1`).get() as { id?: string } | undefined;
+        const immediateReplyId = crypto.randomUUID();
+        const immediateReply = `Got it — I saw your comment: "${cleanMsg}". I’m on it and will post the concrete update here.`;
+
+        db.prepare(`
+          INSERT INTO task_activities (id, task_id, agent_id, activity_type, message, metadata)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          immediateReplyId,
+          taskId,
+          chipAi?.id || null,
+          'comment',
+          immediateReply,
+          JSON.stringify({ source: 'system', kind: 'immediate_reply_fallback' })
+        );
+
+        broadcast({
+          type: 'activity_logged',
+          payload: {
+            id: immediateReplyId,
+            task_id: taskId,
+            agent_id: chipAi?.id || undefined,
+            activity_type: 'comment',
+            message: immediateReply,
+            metadata: JSON.stringify({ source: 'system', kind: 'immediate_reply_fallback' }),
             created_at: new Date().toISOString(),
           },
         });

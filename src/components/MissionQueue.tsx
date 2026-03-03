@@ -5,6 +5,7 @@ import { Plus, ChevronRight, GripVertical, Pin, X } from 'lucide-react';
 import { useMissionControl } from '@/lib/store';
 import type { Task, TaskStatus } from '@/lib/types';
 import { TaskModal } from './TaskModal';
+import { ErrorBoundary } from './ErrorBoundary';
 import { BlockedPanel } from './BlockedPanel';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -22,6 +23,7 @@ const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'testing', label: 'TESTING', color: 'border-t-mc-accent-cyan' },
   { id: 'review', label: 'REVIEW', color: 'border-t-mc-accent-purple' },
   { id: 'done', label: 'DONE', color: 'border-t-mc-accent-green' },
+  { id: 'someday', label: '💭 SOMEDAY', color: 'border-t-mc-text-secondary' },
 ];
 
 export function MissionQueue({ workspaceId }: MissionQueueProps) {
@@ -31,6 +33,8 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [priorityInput, setPriorityInput] = useState('');
   const [priorityError, setPriorityError] = useState<string | null>(null);
+  const [showSomedayColumn, setShowSomedayColumn] = useState(false);
+  const [mobileShowPriorities, setMobileShowPriorities] = useState(false);
 
   const workspaceTasks = useMemo(
     () => tasks.filter((task) => !workspaceId || task.workspace_id === workspaceId),
@@ -39,15 +43,33 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
 
   const priorityTasks = useMemo(
     () => workspaceTasks
-      .filter((task) => task.is_priority_today)
+      .filter((task) => task.is_priority_today && task.status !== 'done')
       .sort((a, b) => (a.priority_rank ?? 999) - (b.priority_rank ?? 999) ||
         new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       .slice(0, MAX_PRIORITIES),
     [workspaceTasks]
   );
 
-  const getTasksByStatus = (status: TaskStatus) =>
-    workspaceTasks.filter((task) => task.status === status && !task.is_priority_today);
+  const getTasksByStatus = (status: TaskStatus) => {
+    const filteredTasks = workspaceTasks.filter((task) => {
+      if (task.status !== status || task.is_priority_today) return false;
+      
+      // For someday tasks, only show if not snoozed OR snooze period has passed
+      if (status === 'someday' && task.snoozed_until) {
+        return new Date(task.snoozed_until) <= new Date();
+      }
+      
+      return true;
+    });
+    return filteredTasks;
+  };
+
+  // Get snoozed someday tasks that should remain hidden
+  const getSnoozedTasks = () =>
+    workspaceTasks.filter((task) => {
+      if (task.status !== 'someday' || !task.snoozed_until) return false;
+      return new Date(task.snoozed_until) > new Date();
+    });
 
   const clearPriorityErrorSoon = () => {
     setTimeout(() => setPriorityError(null), 2200);
@@ -85,18 +107,27 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
       return;
     }
 
+    // If moving to someday, set snoozed_until to 30 days from now
+    const patch: Record<string, unknown> = { status: targetStatus };
+    if (targetStatus === 'someday') {
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      patch.snoozed_until = thirtyDaysFromNow.toISOString();
+      patch.snooze_count = (draggedTask.snooze_count || 0) + 1;
+    }
+
     // Optimistic update
     updateTaskStatus(draggedTask.id, targetStatus);
 
     // Persist to API
     try {
-      const updated = await persistTaskPatch(draggedTask.id, { status: targetStatus });
+      const updated = await persistTaskPatch(draggedTask.id, patch);
       updateTask(updated);
       addEvent({
         id: crypto.randomUUID(),
         type: targetStatus === 'done' ? 'task_completed' : 'task_status_changed',
         task_id: draggedTask.id,
-        message: `Task "${draggedTask.title}" moved to ${targetStatus}`,
+        message: `Task "${draggedTask.title}" moved to ${targetStatus}${targetStatus === 'someday' ? ' (30-day snooze activated)' : ''}`,
         created_at: new Date().toISOString(),
       });
     } catch (error) {
@@ -230,80 +261,106 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMobileShowPriorities(!mobileShowPriorities)}
+                className="lg:hidden p-1 hover:bg-mc-border rounded"
+                title={mobileShowPriorities ? 'Collapse priorities' : 'Expand priorities'}
+              >
+                <ChevronRight className={`w-4 h-4 transition-transform ${mobileShowPriorities ? 'rotate-90' : ''}`} />
+              </button>
               <Pin className="w-4 h-4 text-mc-accent-yellow" />
               <h3 className="text-sm font-semibold">Today&apos;s Priorities</h3>
             </div>
             <span className="text-xs text-mc-text-secondary">{priorityTasks.length}/{MAX_PRIORITIES}</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-            {Array.from({ length: MAX_PRIORITIES }).map((_, index) => {
-              const task = priorityTasks[index];
-              if (!task) {
+          {(mobileShowPriorities || window.innerWidth >= 1024) && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+              {Array.from({ length: MAX_PRIORITIES }).map((_, index) => {
+                const task = priorityTasks[index];
+                if (!task) {
+                  return (
+                    <div
+                      key={`priority-slot-${index}`}
+                      className="h-20 rounded border border-dashed border-mc-border flex items-center justify-center text-xs text-mc-text-secondary"
+                    >
+                      Drop task here
+                    </div>
+                  );
+                }
+
                 return (
-                  <div
-                    key={`priority-slot-${index}`}
-                    className="h-20 rounded border border-dashed border-mc-border flex items-center justify-center text-xs text-mc-text-secondary"
-                  >
-                    Drop task here
+                  <div key={task.id} className="relative">
+                    <TaskCard
+                      task={task}
+                      onDragStart={handleDragStart}
+                      onClick={() => setEditingTask(task)}
+                      isDragging={draggedTask?.id === task.id}
+                      compact
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleUnpinPriority(task);
+                      }}
+                      className="absolute top-2 right-2 p-1 rounded bg-mc-bg-tertiary/80 hover:bg-mc-bg-tertiary"
+                      title="Remove from today's priorities"
+                    >
+                      <X className="w-3.5 h-3.5 text-mc-text-secondary" />
+                    </button>
                   </div>
                 );
-              }
+              })}
+            </div>
+          )}
 
-              return (
-                <div key={task.id} className="relative">
-                  <TaskCard
-                    task={task}
-                    onDragStart={handleDragStart}
-                    onClick={() => setEditingTask(task)}
-                    isDragging={draggedTask?.id === task.id}
-                    compact
-                  />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleUnpinPriority(task);
-                    }}
-                    className="absolute top-2 right-2 p-1 rounded bg-mc-bg-tertiary/80 hover:bg-mc-bg-tertiary"
-                    title="Remove from today's priorities"
-                  >
-                    <X className="w-3.5 h-3.5 text-mc-text-secondary" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          {(mobileShowPriorities || window.innerWidth >= 1024) && (
+            <>
+              <div className="flex items-center gap-2">
+                <input
+                  value={priorityInput}
+                  onChange={(e) => setPriorityInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleCreatePriority();
+                    }
+                  }}
+                  placeholder="Add Priority..."
+                  className="flex-1 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
+                />
+                <button
+                  onClick={() => void handleCreatePriority()}
+                  className="px-3 py-2 text-sm rounded bg-mc-accent text-mc-bg font-medium hover:bg-mc-accent/90"
+                >
+                  Add
+                </button>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              value={priorityInput}
-              onChange={(e) => setPriorityInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  void handleCreatePriority();
-                }
-              }}
-              placeholder="Add Priority..."
-              className="flex-1 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
-            />
-            <button
-              onClick={() => void handleCreatePriority()}
-              className="px-3 py-2 text-sm rounded bg-mc-accent text-mc-bg font-medium hover:bg-mc-accent/90"
-            >
-              Add
-            </button>
-          </div>
-
-          {priorityError && (
-            <p className="text-xs text-mc-accent-red mt-2">{priorityError}</p>
+              {priorityError && (
+                <p className="text-xs text-mc-accent-red mt-2">{priorityError}</p>
+              )}
+            </>
           )}
         </div>
       </div>
 
+      {/* Someday Toggle */}
+      {getSnoozedTasks().length > 0 && (
+        <div className="px-3 pb-2 flex gap-2">
+          <button
+            onClick={() => setShowSomedayColumn(!showSomedayColumn)}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs rounded bg-mc-bg-secondary border border-mc-border hover:bg-mc-border/50 text-mc-text-secondary"
+          >
+            <ChevronRight className={`w-4 h-4 transition-transform ${showSomedayColumn ? 'rotate-90' : ''}`} />
+            <span>💭 Snoozed {getSnoozedTasks().length}</span>
+          </button>
+        </div>
+      )}
+
       {/* Kanban Columns - horizontal scroll on desktop, vertical stack on mobile */}
       <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 overflow-y-auto lg:overflow-x-auto lg:overflow-y-hidden pb-20 lg:pb-3">
-        {COLUMNS.map((column) => {
+        {COLUMNS.filter(col => col.id !== 'someday' || showSomedayColumn).map((column) => {
           const columnTasks = getTasksByStatus(column.id);
           return (
             <div
@@ -343,10 +400,14 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
 
       {/* Modals */}
       {showCreateModal && (
-        <TaskModal onClose={() => setShowCreateModal(false)} workspaceId={workspaceId} />
+        <ErrorBoundary fallbackLabel="TaskModal">
+          <TaskModal onClose={() => setShowCreateModal(false)} workspaceId={workspaceId} />
+        </ErrorBoundary>
       )}
       {editingTask && (
-        <TaskModal task={editingTask} onClose={() => setEditingTask(null)} workspaceId={workspaceId} />
+        <ErrorBoundary fallbackLabel="TaskModal">
+          <TaskModal task={editingTask} onClose={() => setEditingTask(null)} workspaceId={workspaceId} />
+        </ErrorBoundary>
       )}
     </div>
   );
@@ -424,6 +485,15 @@ function TaskCard({ task, onDragStart, onClick, isDragging, compact = false }: T
             <span className="text-base">{(task.assigned_agent as unknown as { avatar_emoji: string }).avatar_emoji}</span>
             <span className="text-xs text-mc-text-secondary truncate">
               {(task.assigned_agent as unknown as { name: string }).name}
+            </span>
+          </div>
+        )}
+
+        {/* Suggested next step */}
+        {task.suggested_next_step && !task.blocked_on && !isPlanning && !compact && (
+          <div className="flex items-center gap-2 mb-2 lg:mb-3 py-1.5 px-2 bg-mc-accent/5 rounded border border-mc-accent/15">
+            <span className="text-[10px] leading-snug text-mc-text-secondary line-clamp-2">
+              {task.suggested_next_step}
             </span>
           </div>
         )}

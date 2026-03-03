@@ -23,8 +23,8 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const [usePlanningMode, setUsePlanningMode] = useState(false);
-  // Auto-switch to planning tab if task is in planning status
-  const [activeTab, setActiveTab] = useState<TabType>(task?.status === 'planning' ? 'planning' : 'overview');
+  // Auto-switch to planning tab if task is in planning status, otherwise default to activity
+  const [activeTab, setActiveTab] = useState<TabType>(task?.status === 'planning' ? 'planning' : task ? 'activity' : 'overview');
 
   const [form, setForm] = useState({
     title: task?.title || '',
@@ -36,6 +36,16 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     blocked_on: task?.blocked_on || '',
     blocked_reason: task?.blocked_reason || '',
   });
+
+  const [suggestion, setSuggestion] = useState<{ next_step: string; action: string } | null>(null);
+
+  useEffect(() => {
+    if (!task) return;
+    fetch('/api/tasks/suggest?id=' + task.id)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSuggestion(data); })
+      .catch(() => {});
+  }, [task, form.status]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +131,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
     }
   };
 
-  const setTaskStatus = useCallback(async (status: TaskStatus) => {
+  const setTaskStatus = useCallback(async (status: TaskStatus): Promise<boolean> => {
     // Existing task: persist immediately
     if (task) {
       try {
@@ -134,15 +144,17 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
           const updated = await res.json();
           updateTask(updated);
           setForm((prev) => ({ ...prev, status }));
+          return true;
         }
       } catch (error) {
         console.error(`Failed to set task status to ${status}:`, error);
       }
-      return;
+      return false;
     }
 
     // New/unsaved task: just set form state
     setForm((prev) => ({ ...prev, status }));
+    return true;
   }, [task, updateTask]);
 
   const statuses: TaskStatus[] = ['planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'done'];
@@ -194,10 +206,13 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
       if (isTypingField) return;
 
-      // D = quick mark done
+      // D = quick mark done + close modal
       if (e.key === 'd' || e.key === 'D') {
         e.preventDefault();
-        void setTaskStatus('done');
+        void (async () => {
+          const ok = await setTaskStatus('done');
+          if (ok) onClose();
+        })();
         return;
       }
 
@@ -227,9 +242,9 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
   }, [onClose, task?.id, setTaskStatus, toggleTodayPriority]);
 
   const tabs = [
+    { id: 'activity' as TabType, label: 'Chat & Activity', shortLabel: 'Chat', icon: <Activity className="w-4 h-4" /> },
     { id: 'overview' as TabType, label: 'Overview', shortLabel: 'Info', icon: null },
     { id: 'planning' as TabType, label: 'Planning', shortLabel: 'Plan', icon: <ClipboardList className="w-4 h-4" /> },
-    { id: 'activity' as TabType, label: 'Chat & Activity', shortLabel: 'Chat', icon: <Activity className="w-4 h-4" /> },
     { id: 'deliverables' as TabType, label: 'Deliverables', shortLabel: 'Files', icon: <Package className="w-4 h-4" /> },
     { id: 'sessions' as TabType, label: 'Sessions', shortLabel: 'Sess', icon: <Bot className="w-4 h-4" /> },
   ];
@@ -468,7 +483,25 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
           {/* Activity Tab */}
           {activeTab === 'activity' && task && (
+            <>
+            {suggestion && (
+              <div className={`mb-4 p-3 rounded-lg border ${
+                suggestion.action === "auto_execute" ? "bg-green-500/5 border-green-500/30" :
+                suggestion.action === "needs_planning" ? "bg-blue-500/5 border-blue-500/30" :
+                suggestion.action === "blocked" ? "bg-red-500/5 border-red-500/30" :
+                "bg-yellow-500/5 border-yellow-500/30"
+              }`}>
+                <p className="text-sm font-medium mb-1">
+                  {suggestion.action === "auto_execute" ? "⚡" :
+                   suggestion.action === "needs_planning" ? "📋" :
+                   suggestion.action === "blocked" ? "🚫" : "👉"} Suggested Next Step
+                </p>
+                <p className="text-sm text-mc-text-secondary">{suggestion.next_step}</p>
+              </div>
+            )}
+
             <ActivityLog taskId={task.id} task={task} />
+            </>
           )}
 
           {/* Deliverables Tab */}
@@ -478,7 +511,7 @@ export function TaskModal({ task, onClose, workspaceId }: TaskModalProps) {
 
           {/* Sessions Tab */}
           {activeTab === 'sessions' && task && (
-            <SessionsList taskId={task.id} />
+            <SessionsList taskId={task.id} onSwitchToActivity={() => setActiveTab('activity')} />
           )}
         </div>
 

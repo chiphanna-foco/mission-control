@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 /**
  * File Download API
  * Returns file content over HTTP from the server filesystem.

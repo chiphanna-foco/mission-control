@@ -10,8 +10,10 @@ import { MissionQueue } from '@/components/MissionQueue';
 import { LiveFeed } from '@/components/LiveFeed';
 import { MobileNav } from '@/components/MobileNav';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
+import { ContentObservabilityPanel } from '@/components/ContentObservabilityPanel';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { debug } from '@/lib/debug';
 import type { Task, Workspace } from '@/lib/types';
 
@@ -31,6 +33,7 @@ export default function WorkspacePage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'mission_queue' | 'content_observability'>('mission_queue');
 
   // Connect to SSE for real-time updates
   useSSE();
@@ -215,10 +218,49 @@ export default function WorkspacePage() {
         />
 
         {/* Main Content Area */}
-        <MissionQueue workspaceId={workspace.id} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="px-3 pt-3">
+            <div className="inline-flex rounded-lg border border-mc-border bg-mc-bg-secondary p-1">
+              <button
+                onClick={() => setActiveTab('mission_queue')}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  activeTab === 'mission_queue'
+                    ? 'bg-mc-accent text-mc-bg font-medium'
+                    : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                Mission Queue
+              </button>
+              <button
+                onClick={() => setActiveTab('content_observability')}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  activeTab === 'content_observability'
+                    ? 'bg-mc-accent text-mc-bg font-medium'
+                    : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                Content Observability
+              </button>
+            </div>
+          </div>
+
+          {activeTab === 'mission_queue' ? (
+            <ErrorBoundary fallbackLabel="MissionQueue">
+              <MissionQueue workspaceId={workspace.id} />
+            </ErrorBoundary>
+          ) : (
+            <div className="flex-1 overflow-y-auto pb-20 lg:pb-3">
+              <ErrorBoundary fallbackLabel="ContentObservabilityPanel">
+                <ContentObservabilityPanel workspaceId={workspace.id} />
+              </ErrorBoundary>
+            </div>
+          )}
+        </div>
 
         {/* Live Feed - hidden on mobile */}
-        <LiveFeed />
+        <ErrorBoundary fallbackLabel="LiveFeed">
+          <LiveFeed />
+        </ErrorBoundary>
       </div>
 
       {/* Mobile Bottom Nav */}

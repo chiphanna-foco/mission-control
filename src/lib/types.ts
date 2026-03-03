@@ -2,7 +2,7 @@
 
 export type AgentStatus = 'standby' | 'working' | 'offline';
 
-export type TaskStatus = 'planning' | 'inbox' | 'assigned' | 'in_progress' | 'testing' | 'review' | 'done';
+export type TaskStatus = 'planning' | 'inbox' | 'assigned' | 'in_progress' | 'testing' | 'review' | 'done' | 'someday';
 
 export type TaskPriority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -49,10 +49,14 @@ export interface Task {
   due_date?: string;
   blocked_on?: string;
   blocked_reason?: string;
+  suggested_next_step?: string;
+  suggested_action?: string;
   tags?: string;
   is_priority_today?: number;
   priority_rank?: number | null;
   priority_note?: string | null;
+  snoozed_until?: string;
+  snooze_count?: number;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -169,6 +173,8 @@ export interface TaskDeliverable {
   path?: string;
   description?: string;
   created_at: string;
+  status?: 'not_started' | 'in_progress' | 'done';
+  updated_at?: string;
 }
 
 export interface ConversationEvent {
@@ -324,6 +330,7 @@ export type SSEEventType =
   | 'task_deleted'
   | 'activity_logged'
   | 'deliverable_added'
+  | 'deliverable_updated'
   | 'agent_spawned'
   | 'agent_completed';
 

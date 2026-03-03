@@ -25,6 +25,14 @@ export function ActivityLog({ taskId, task }: ActivityLogProps) {
     loadActivities();
   }, [taskId]);
 
+  // Poll for new activities every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadActivities();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [taskId]);
+
   const loadActivities = async () => {
     try {
       const res = await fetch(`/api/tasks/${taskId}/activities`);
@@ -179,8 +187,19 @@ export function ActivityLog({ taskId, task }: ActivityLogProps) {
     <div>
       {needsContext}
       {commentBox}
+      <div className="flex items-center gap-2 mb-3 text-xs text-mc-text-secondary">
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+        </span>
+        Live
+      </div>
       <div className="space-y-3">
-      {activities.map((activity) => (
+      {activities.slice().sort((a, b) => {
+        if (a.activity_type === 'comment' && b.activity_type !== 'comment') return -1;
+        if (a.activity_type !== 'comment' && b.activity_type === 'comment') return 1;
+        return 0;
+      }).map((activity) => (
         <div
           key={activity.id}
           className={`flex gap-3 p-3 rounded-lg border ${

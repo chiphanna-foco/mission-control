@@ -1,10 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
+
 import { v4 as uuidv4 } from 'uuid';
 import { queryAll, queryOne, run } from '@/lib/db';
 import { isTaskCandidate } from '@/lib/conversations';
 import type { ConversationEvent } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
+function stripReplyTag(text: string): string {
+  return text.replace(/^\s*\[\[\s*reply_to[^\]]*\]\]\s*/i, '').trim();
+}
+
+function extractTaskId(text: string): string | null {
+  const m = text.match(/\(task_id:([a-zA-Z0-9_-]+)\)/i) || text.match(/task_id:([a-zA-Z0-9_-]+)/i);
+  return m?.[1] || null;
+}
+
+function ensureConversationTaskLink(eventId: string, taskId: string, createdAt: number) {
+  const existingLink = queryOne<{ id: string }>(
+    'SELECT id FROM conversation_task_links WHERE conversation_event_id = ? AND task_id = ?',
+    [eventId, taskId]
+  );
+  if (!existingLink) {
+    run(
+      `INSERT INTO conversation_task_links (id, conversation_event_id, task_id, created_at)
+       VALUES (?, ?, ?, ?)`,
+      [uuidv4(), eventId, taskId, createdAt]
+    );
+  }
+}
+
+function maybeBridgeAssistantReplyToTask(params: {
+  eventId: string;
+  taskId: string;
+  role?: string | null;
+  text?: string | null;
+  threadId?: string | null;
+  createdAt: number;
+}) {
+  const role = (params.role || '').toLowerCase();
+  if (role !== 'assistant') return;
+  if (!params.text) return;
+  if (/mc comment from chip/i.test(params.text)) return;
+
+  const message = stripReplyTag(params.text);
+  if (!message) return;
+
+  const existingActivity = queryOne<{ id: string }>(
+    `SELECT id FROM task_activities
+     WHERE task_id = ? AND metadata LIKE ?
+     LIMIT 1`,
+    [params.taskId, `%"conversation_event_id":"${params.eventId}"%`]
+  );
+  if (existingActivity) return;
+
+  const chipAI = queryOne<{ id: string }>(
+    `SELECT id FROM agents WHERE name = 'ChipAI' LIMIT 1`
+  );
+
+  run(
+    `INSERT INTO task_activities (id, task_id, agent_id, activity_type, message, metadata, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      uuidv4(),
+      params.taskId,
+      chipAI?.id || null,
+      'comment',
+      message,
+      JSON.stringify({
+        source: 'conversation_bridge',
+        conversation_event_id: params.eventId,
+        thread_id: params.threadId || null,
+      }),
+      new Date(params.createdAt).toISOString(),
+    ]
+  );
+}
+
 
 // GET /api/conversations/events
 export async function GET(request: NextRequest) {
@@ -97,6 +168,33 @@ export async function POST(request: NextRequest) {
           ]
         );
 
+        let linkedTaskId = extractTaskId(body.text || '');
+        if (linkedTaskId) {
+          ensureConversationTaskLink(existing.id, linkedTaskId, now);
+        } else if (body.thread_id) {
+          const threadLink = queryOne<{ task_id: string }>(
+            `SELECT l.task_id
+             FROM conversation_task_links l
+             JOIN conversation_events e ON e.id = l.conversation_event_id
+             WHERE e.thread_id = ?
+             ORDER BY COALESCE(e.ts, e.created_at) DESC
+             LIMIT 1`,
+            [body.thread_id]
+          );
+          linkedTaskId = threadLink?.task_id || null;
+        }
+
+        if (linkedTaskId) {
+          maybeBridgeAssistantReplyToTask({
+            eventId: existing.id,
+            taskId: linkedTaskId,
+            role: body.role || null,
+            text: body.text || null,
+            threadId: body.thread_id || null,
+            createdAt: now,
+          });
+        }
+
         return NextResponse.json({ id: existing.id, upserted: true, is_task_candidate: isTaskCandidate(body.text || '') });
       }
     }
@@ -122,6 +220,33 @@ export async function POST(request: NextRequest) {
         now,
       ]
     );
+
+    let linkedTaskId = extractTaskId(body.text || '');
+    if (linkedTaskId) {
+      ensureConversationTaskLink(id, linkedTaskId, now);
+    } else if (body.thread_id) {
+      const threadLink = queryOne<{ task_id: string }>(
+        `SELECT l.task_id
+         FROM conversation_task_links l
+         JOIN conversation_events e ON e.id = l.conversation_event_id
+         WHERE e.thread_id = ?
+         ORDER BY COALESCE(e.ts, e.created_at) DESC
+         LIMIT 1`,
+        [body.thread_id]
+      );
+      linkedTaskId = threadLink?.task_id || null;
+    }
+
+    if (linkedTaskId) {
+      maybeBridgeAssistantReplyToTask({
+        eventId: id,
+        taskId: linkedTaskId,
+        role: body.role || null,
+        text: body.text || null,
+        threadId: body.thread_id || null,
+        createdAt: now,
+      });
+    }
 
     return NextResponse.json({ id, created: true, is_task_candidate: isTaskCandidate(body.text || '') }, { status: 201 });
   } catch (error) {

@@ -16,10 +16,10 @@ import type { TaskDeliverable } from '@/lib/types';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const db = getDb();
 
     const deliverables = db.prepare(`
@@ -45,10 +45,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const body = await request.json();
     
     const { deliverable_type, title, path, description } = body;
@@ -117,6 +117,76 @@ export async function POST(
     console.error('Error creating deliverable:', error);
     return NextResponse.json(
       { error: 'Failed to create deliverable' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/tasks/[id]/deliverables
+ * Update a deliverable's status or other fields
+ * Body: { deliverable_id, status?, title?, description? }
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: taskId } = await params;
+    const body = await request.json();
+    const { deliverable_id, status, title, description } = body;
+
+    if (!deliverable_id) {
+      return NextResponse.json(
+        { error: 'deliverable_id is required' },
+        { status: 400 }
+      );
+    }
+
+    const validStatuses = ['not_started', 'in_progress', 'done'];
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `status must be one of: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const db = getDb();
+
+    // Build dynamic update
+    const updates: string[] = [];
+    const values: (string | null)[] = [];
+
+    if (status) { updates.push('status = ?'); values.push(status); }
+    if (title) { updates.push('title = ?'); values.push(title); }
+    if (description !== undefined) { updates.push('description = ?'); values.push(description); }
+    updates.push("updated_at = datetime('now')");
+
+    if (updates.length === 1) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    values.push(deliverable_id);
+    values.push(taskId);
+
+    db.prepare(`
+      UPDATE task_deliverables
+      SET ${updates.join(', ')}
+      WHERE id = ? AND task_id = ?
+    `).run(...values);
+
+    const updated = db.prepare('SELECT * FROM task_deliverables WHERE id = ?').get(deliverable_id) as TaskDeliverable;
+
+    broadcast({
+      type: 'deliverable_updated',
+      payload: updated,
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Error updating deliverable:', error);
+    return NextResponse.json(
+      { error: 'Failed to update deliverable' },
       { status: 500 }
     );
   }

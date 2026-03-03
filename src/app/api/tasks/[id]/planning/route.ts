@@ -210,25 +210,42 @@ export async function POST(
     }
 
     // Check if planning already started
+    const url = new URL(request.url);
+    const forceReset = url.searchParams.get('reset') === 'true';
     if (task.planning_session_key) {
-      return NextResponse.json({ error: 'Planning already started', sessionKey: task.planning_session_key }, { status: 400 });
+      if (forceReset) {
+        // Reset planning session — use a NEW session key so OpenClaw history does not bleed in
+        getDb().prepare('UPDATE tasks SET planning_session_key = NULL, planning_messages = NULL, planning_complete = 0, planning_spec = NULL, planning_agents = NULL WHERE id = ?').run(taskId);
+      } else {
+        return NextResponse.json({ error: 'Planning already started', sessionKey: task.planning_session_key }, { status: 400 });
+      }
     }
 
-    // Create session key for this planning task
-    const sessionKey = `${PLANNING_SESSION_PREFIX}${taskId}`;
+    // Use timestamped session key so each fresh start has clean OpenClaw history
+    const sessionKeySuffix = forceReset ? `-${Date.now()}` : '';
+
+    // Create session key for this planning task (suffix added on reset for clean history)
+    const sessionKey = `${PLANNING_SESSION_PREFIX}${taskId}${sessionKeySuffix || ''}`;
 
     // Build the initial planning prompt
     const planningPrompt = `PLANNING REQUEST
 
 Task Title: ${task.title}
-Task Description: ${task.description || 'No description provided'}
 
-You are starting a planning session for this task.
+Task Description (READ THIS CAREFULLY — your questions must be grounded in this spec):
+---
+${task.description || 'No description provided'}
+---
 
-Generate your FIRST question to understand what the user needs. Remember:
-- Questions must be multiple choice
+You are starting a planning session for this task. Your job is to ask clarifying questions that fill in GAPS or DECISIONS not already covered by the description above.
+
+IMPORTANT RULES:
+- Read the description thoroughly before generating questions
+- Do NOT ask about things already specified in the description
+- Questions must resolve genuine ambiguities or trade-offs for THIS specific task
+- Every question must directly reference context from the description above
+- Questions must be multiple choice with 3-4 options
 - Include an "Other" option
-- Be specific to THIS task, not generic
 
 Respond with ONLY valid JSON in this format:
 {

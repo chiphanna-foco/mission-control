@@ -215,6 +215,31 @@ const migrations: Migration[] = [
 
       db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_priority_today ON tasks(workspace_id, is_priority_today, priority_rank)');
     }
+  },
+  {
+    id: '007',
+    name: 'add_someday_status_and_snooze_fields',
+    up: (db) => {
+      console.log('[Migration 007] Adding someday status and snooze fields...');
+
+      const tasksInfo = db.prepare('PRAGMA table_info(tasks)').all() as { name: string }[];
+
+      // Add snoozed_until column for 30-day snooze tracking
+      if (!tasksInfo.some(col => col.name === 'snoozed_until')) {
+        db.exec('ALTER TABLE tasks ADD COLUMN snoozed_until TEXT');
+        console.log('[Migration 007] Added snoozed_until column');
+      }
+
+      // Add snooze_count column to track number of snoozes
+      if (!tasksInfo.some(col => col.name === 'snooze_count')) {
+        db.exec('ALTER TABLE tasks ADD COLUMN snooze_count INTEGER DEFAULT 0');
+        console.log('[Migration 007] Added snooze_count column');
+      }
+
+      // Create index for efficient snooze queries
+      db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_snoozed ON tasks(snoozed_until) WHERE snoozed_until IS NOT NULL');
+      console.log('[Migration 007] Added index for snoozed tasks');
+    }
   }
 ];
 

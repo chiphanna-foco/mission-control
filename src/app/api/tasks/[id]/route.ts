@@ -136,6 +136,15 @@ export async function PATCH(
     // Track if we need to dispatch task
     let shouldDispatch = false;
 
+    // Completed tasks should never remain in Today's Priorities
+    // (enforce even if status is already 'done')
+    if (body.status === 'done') {
+      updates.push('is_priority_today = ?');
+      values.push(0);
+      updates.push('priority_rank = ?');
+      values.push(null);
+    }
+
     // Handle status change
     if (body.status !== undefined && body.status !== existing.status) {
       updates.push('status = ?');
