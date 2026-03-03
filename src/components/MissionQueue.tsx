@@ -345,52 +345,57 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
         </div>
       </div>
 
-      {/* Someday Toggle */}
-      <div className="px-3 pb-2 flex gap-2">
-        <button
-          onClick={() => setShowSomedayColumn(!showSomedayColumn)}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs rounded bg-mc-bg-secondary border border-mc-border hover:bg-mc-border/50 text-mc-text-secondary"
-        >
-          <ChevronRight className={`w-4 h-4 transition-transform ${showSomedayColumn ? 'rotate-90' : ''}`} />
-          <span>💭 Someday {getSnoozedTasks().length > 0 ? `(${getSnoozedTasks().length} snoozed)` : '(show)'}</span>
-        </button>
-      </div>
-
       {/* Kanban Columns - horizontal scroll on desktop, vertical stack on mobile */}
       <div className="flex-1 flex flex-col lg:flex-row gap-3 p-3 overflow-y-auto lg:overflow-x-auto lg:overflow-y-hidden pb-20 lg:pb-3">
-        {COLUMNS.filter(col => col.id !== 'someday' || showSomedayColumn).map((column) => {
+        {COLUMNS.map((column) => {
           const columnTasks = getTasksByStatus(column.id);
+          const isSomedayColumn = column.id === 'someday';
+          const somedayExpanded = showSomedayColumn;
+          
           return (
             <div
               key={column.id}
               className={`lg:flex-1 lg:min-w-[220px] lg:max-w-[300px] flex flex-col bg-mc-bg rounded-lg border border-mc-border/50 border-t-2 ${column.color} ${
-                columnTasks.length === 0 ? 'hidden lg:flex' : ''
+                columnTasks.length === 0 && !isSomedayColumn ? 'hidden lg:flex' : ''
               }`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, column.id)}
             >
               {/* Column Header */}
               <div className="p-2 border-b border-mc-border flex items-center justify-between">
-                <span className="text-xs font-medium uppercase text-mc-text-secondary">
-                  {column.label}
-                </span>
+                <div className="flex items-center gap-2">
+                  {isSomedayColumn && (
+                    <button
+                      onClick={() => setShowSomedayColumn(!somedayExpanded)}
+                      className="p-0.5 hover:bg-mc-border/50 rounded transition-colors"
+                      title={somedayExpanded ? 'Collapse Someday' : 'Expand Someday'}
+                    >
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform ${somedayExpanded ? 'rotate-90' : ''}`} />
+                    </button>
+                  )}
+                  <span className="text-xs font-medium uppercase text-mc-text-secondary">
+                    {column.label}
+                  </span>
+                </div>
                 <span className="text-xs bg-mc-bg-tertiary px-2 py-0.5 rounded text-mc-text-secondary">
                   {columnTasks.length}
                 </span>
               </div>
 
-              {/* Tasks */}
-              <div className="flex-1 lg:overflow-y-auto p-2 space-y-2">
-                {columnTasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onDragStart={handleDragStart}
-                    onClick={() => setEditingTask(task)}
-                    isDragging={draggedTask?.id === task.id}
-                  />
-                ))}
-              </div>
+              {/* Tasks - hide for Someday column unless expanded */}
+              {(!isSomedayColumn || somedayExpanded) && (
+                <div className="flex-1 lg:overflow-y-auto p-2 space-y-2">
+                  {columnTasks.map((task) => (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      onDragStart={handleDragStart}
+                      onClick={() => setEditingTask(task)}
+                      isDragging={draggedTask?.id === task.id}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

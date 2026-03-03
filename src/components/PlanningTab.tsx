@@ -425,7 +425,12 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
       {/* Question area */}
       <div className="flex-1 overflow-y-auto p-6">
         {state?.currentQuestion ? (
-          <div className="max-w-xl mx-auto">
+          <div className="max-w-xl mx-auto" onKeyDown={(e) => {
+            // Enter key submits if option is selected
+            if (e.key === 'Enter' && selectedOption && !submitting && !(selectedOption === 'other' && !otherText.trim())) {
+              submitAnswer();
+            }
+          }}>
             <h3 className="text-lg font-medium mb-6">
               {state.currentQuestion.question}
             </h3>
@@ -462,6 +467,11 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
                           type="text"
                           value={otherText}
                           onChange={(e) => setOtherText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !submitting && otherText.trim()) {
+                              submitAnswer();
+                            }
+                          }}
                           placeholder="Please specify..."
                           className="w-full bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm focus:outline-none focus:border-mc-accent"
                           disabled={submitting}
