@@ -133,6 +133,16 @@ export async function PATCH(
       values.push((body as Record<string, unknown>).priority_note);
     }
 
+    if ((body as Record<string, unknown>).snoozed_until !== undefined) {
+      updates.push('snoozed_until = ?');
+      values.push((body as Record<string, unknown>).snoozed_until);
+    }
+
+    if ((body as Record<string, unknown>).snooze_count !== undefined) {
+      updates.push('snooze_count = ?');
+      values.push((body as Record<string, unknown>).snooze_count);
+    }
+
     // Track if we need to dispatch task
     let shouldDispatch = false;
 
