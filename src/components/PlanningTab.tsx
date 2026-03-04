@@ -126,7 +126,7 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
     if (state?.isStarted && !state?.currentQuestion && !state?.isComplete) {
       waitingTimerRef.current = setTimeout(() => {
         setWaitingTooLong(true);
-      }, 20000);
+      }, 60000);
     } else {
       setWaitingTooLong(false);
       if (waitingTimerRef.current) {
@@ -327,15 +327,25 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
           <button
             onClick={async () => {
               setStartingBuild(true);
+              setError(null);
               try {
-                await fetch(`/api/tasks/${taskId}`, {
-                  method: 'PATCH',
+                const res = await fetch(`/api/tasks/${taskId}/execute`, {
+                  method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'in_progress' }),
                 });
-                setBuildStarted(true);
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                  setBuildStarted(true);
+                  setError(null);
+                } else if (data.blockers && data.blockers.length > 0) {
+                  // Show blocker message
+                  setError(`⚠️ Cannot start: ${data.blockers.join(' • ')}`);
+                } else {
+                  setError(data.message || 'Failed to start execution');
+                }
               } catch (err) {
-                console.error('Failed to start build:', err);
+                setError(err instanceof Error ? err.message : 'Network error');
               } finally {
                 setStartingBuild(false);
               }
@@ -349,7 +359,7 @@ export function PlanningTab({ taskId, onSpecLocked }: PlanningTabProps) {
         ) : (
           <div className="flex items-center gap-2 text-green-400 text-sm p-3 bg-green-500/10 rounded-lg border border-green-500/30">
             <CheckCircle className="w-4 h-4" />
-            <span>Task moved to In Progress — ready for agent execution.</span>
+            <span>✅ Execution started. Agents are working now.</span>
           </div>
         )}
 

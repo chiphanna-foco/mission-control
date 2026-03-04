@@ -1,0 +1,29 @@
+{
+  "stalledEmails": [
+    {
+      "id": "gmail-1",
+      "subject": "Partnership terms follow-up",
+      "from": "alex@partnerco.com",
+      "lastReplyAt": "2026-02-26T15:00:00.000Z",
+      "url": "https://mail.google.com"
+    },
+    {
+      "id": "gmail-2",
+      "subject": "Investor intro from Dana",
+      "from": "dana@network.io",
+      "lastReplyAt": "2026-02-23T19:00:00.000Z",
+      "url": "https://mail.google.com"
+    }
+  ],
+  "pendingIntros": [
+    {
+      "id": "intro-1",
+      "requester": "Maya Chen",
+      "introducee": "Ravi Shah",
+      "requestedAt": "2026-02-28T10:30:00.000Z",
+      "status": "awaiting draft",
+      "priority": "dueSoon",
+      "url": "https://mail.google.com"
+    }
+  ]
+}

@@ -14,7 +14,7 @@ async function callOpenClawHTTP(sessionKey: string, message: string): Promise<st
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-haiku-4-5',
       messages: [{ role: 'user', content: message }],
       max_tokens: 4096,
       'x-session-key': sessionKey,

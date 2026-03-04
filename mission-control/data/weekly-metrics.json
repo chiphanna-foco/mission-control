@@ -1,0 +1,58 @@
+{
+  "weekLabel": "Week of 2026-02-23",
+  "generatedAt": "2026-03-02T08:00:00.000Z",
+  "affluentIoCommissions": [
+    {
+      "id": "affluent-commission-gross",
+      "label": "Gross Commission Volume",
+      "value": "$18,420",
+      "target": "$20,000",
+      "trend": "up",
+      "status": "dueSoon"
+    },
+    {
+      "id": "affluent-commission-close-rate",
+      "label": "Closed Deals",
+      "value": "7",
+      "target": "8",
+      "trend": "up",
+      "status": "dueSoon"
+    }
+  ],
+  "gameBuzzFollowers": [
+    {
+      "id": "gamebuzz-net",
+      "label": "Net New Followers",
+      "value": "+1,280",
+      "target": "+1,100",
+      "trend": "up",
+      "status": "onTrack"
+    },
+    {
+      "id": "gamebuzz-engagement",
+      "label": "Avg Engagement Rate",
+      "value": "6.9%",
+      "target": "6.0%",
+      "trend": "up",
+      "status": "onTrack"
+    }
+  ],
+  "healthData": [
+    {
+      "id": "health-sleep",
+      "label": "Avg Sleep",
+      "value": "6h 42m",
+      "target": "7h 30m",
+      "trend": "down",
+      "status": "dueSoon"
+    },
+    {
+      "id": "health-steps",
+      "label": "Avg Daily Steps",
+      "value": "9,850",
+      "target": "10,000",
+      "trend": "up",
+      "status": "dueSoon"
+    }
+  ]
+}

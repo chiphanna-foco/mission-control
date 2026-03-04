@@ -11,6 +11,8 @@ import { LiveFeed } from '@/components/LiveFeed';
 import { MobileNav } from '@/components/MobileNav';
 import { SSEDebugPanel } from '@/components/SSEDebugPanel';
 import { ContentObservabilityPanel } from '@/components/ContentObservabilityPanel';
+import { PerformanceDashboard } from '@/components/PerformanceDashboard';
+import { BusinessKPIDashboard } from '@/components/BusinessKPIDashboard';
 import { useMissionControl } from '@/lib/store';
 import { useSSE } from '@/hooks/useSSE';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -33,7 +35,7 @@ export default function WorkspacePage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'mission_queue' | 'content_observability'>('mission_queue');
+  const [activeTab, setActiveTab] = useState<'mission_queue' | 'content_observability' | 'performance' | 'business_kpi'>('mission_queue');
 
   // Connect to SSE for real-time updates
   useSSE();
@@ -241,6 +243,26 @@ export default function WorkspacePage() {
               >
                 Content Observability
               </button>
+              <button
+                onClick={() => setActiveTab('performance')}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  activeTab === 'performance'
+                    ? 'bg-mc-accent text-mc-bg font-medium'
+                    : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                Performance
+              </button>
+              <button
+                onClick={() => setActiveTab('business_kpi')}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  activeTab === 'business_kpi'
+                    ? 'bg-mc-accent text-mc-bg font-medium'
+                    : 'text-mc-text-secondary hover:text-mc-text'
+                }`}
+              >
+                Business KPIs
+              </button>
             </div>
           </div>
 
@@ -248,10 +270,22 @@ export default function WorkspacePage() {
             <ErrorBoundary fallbackLabel="MissionQueue">
               <MissionQueue workspaceId={workspace.id} />
             </ErrorBoundary>
-          ) : (
+          ) : activeTab === 'content_observability' ? (
             <div className="flex-1 overflow-y-auto pb-20 lg:pb-3">
               <ErrorBoundary fallbackLabel="ContentObservabilityPanel">
                 <ContentObservabilityPanel workspaceId={workspace.id} />
+              </ErrorBoundary>
+            </div>
+          ) : activeTab === 'performance' ? (
+            <div className="flex-1 overflow-y-auto pb-20 lg:pb-3">
+              <ErrorBoundary fallbackLabel="PerformanceDashboard">
+                <PerformanceDashboard />
+              </ErrorBoundary>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto pb-20 lg:pb-3">
+              <ErrorBoundary fallbackLabel="BusinessKPIDashboard">
+                <BusinessKPIDashboard />
               </ErrorBoundary>
             </div>
           )}

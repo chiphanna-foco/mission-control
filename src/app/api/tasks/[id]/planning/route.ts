@@ -19,7 +19,7 @@ async function callOpenClawHTTP(sessionKey: string, message: string): Promise<st
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'anthropic/claude-sonnet-4-20250514',
+      model: 'anthropic/claude-haiku-4-5',
       messages: [{ role: 'user', content: message }],
       max_tokens: 4096,
       'x-session-key': sessionKey,
@@ -241,22 +241,16 @@ You are starting a planning session for this task. Your job is to ask clarifying
 
 IMPORTANT RULES:
 - Read the description thoroughly before generating questions
-- Do NOT ask about things already specified in the description
+- DO NOT ask about things already specified in the description
 - Questions must resolve genuine ambiguities or trade-offs for THIS specific task
 - Every question must directly reference context from the description above
 - Questions must be multiple choice with 3-4 options
 - Include an "Other" option
+- **ASK ONLY ONE QUESTION AT A TIME.** Do not ask multiple questions in a single response.
+- Do not wrap your JSON in markdown code blocks (no triple backticks)
 
-Respond with ONLY valid JSON in this format:
-{
-  "question": "Your question here?",
-  "options": [
-    {"id": "A", "label": "First option"},
-    {"id": "B", "label": "Second option"},
-    {"id": "C", "label": "Third option"},
-    {"id": "other", "label": "Other"}
-  ]
-}`;
+Respond with ONLY valid JSON (no markdown code blocks, no triple backticks). Output pure JSON, nothing else:
+{"question": "Your question here?", "options": [{"id": "A", "label": "First option"}, {"id": "B", "label": "Second option"}, {"id": "C", "label": "Third option"}, {"id": "other", "label": "Other"}]}`;
 
     // Store the session key and initial message
     const messages = [{ role: 'user', content: planningPrompt, timestamp: Date.now() }];
