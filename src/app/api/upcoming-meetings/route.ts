@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrSetCache } from '@/lib/ttlCache';
-import { getMeetingBriefs } from '@/lib/executive-data';
+import { getUpcomingMeetings } from '@/lib/executive-data';
 import { fetchUpcomingMeetingsFromCalendar } from '@/lib/gog-helper';
 
 export const runtime = 'nodejs';
@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
         const liveMeetings = await fetchUpcomingMeetingsFromCalendar();
         
         // Fall back to mock data
-        const mockMeetings = await getMeetingBriefs();
+        const mockResponse = await getUpcomingMeetings();
         
         // Use live meetings if available, otherwise mock
-        const meetings = liveMeetings.length > 0 ? liveMeetings : mockMeetings;
+        const meetings = liveMeetings.length > 0 ? liveMeetings : mockResponse.meetings;
 
         return {
           generatedAt: new Date().toISOString(),
@@ -46,9 +46,9 @@ export async function GET(req: NextRequest) {
     console.error('Upcoming meetings error:', error);
     
     // Fall back to pure mock data on error
-    const mockMeetings = await getMeetingBriefs();
+    const mockResponse = await getUpcomingMeetings();
     return NextResponse.json({
-      meetings: mockMeetings,
+      meetings: mockResponse.meetings,
       live: false,
       note: 'Using mock data (gog failed)',
       generatedAt: new Date().toISOString(),
