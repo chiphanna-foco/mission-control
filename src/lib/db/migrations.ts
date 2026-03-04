@@ -224,21 +224,95 @@ const migrations: Migration[] = [
 
       const tasksInfo = db.prepare('PRAGMA table_info(tasks)').all() as { name: string }[];
 
-      // Add snoozed_until column for 30-day snooze tracking
-      if (!tasksInfo.some(col => col.name === 'snoozed_until')) {
-        db.exec('ALTER TABLE tasks ADD COLUMN snoozed_until TEXT');
-        console.log('[Migration 007] Added snoozed_until column');
-      }
+      // Check if CHECK constraint already includes 'someday'
+      const taskSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='tasks'").get() as { sql: string } | undefined;
+      const hasStatusCheckFix = taskSchema && taskSchema.sql.includes("'someday'");
 
-      // Add snooze_count column to track number of snoozes
-      if (!tasksInfo.some(col => col.name === 'snooze_count')) {
-        db.exec('ALTER TABLE tasks ADD COLUMN snooze_count INTEGER DEFAULT 0');
-        console.log('[Migration 007] Added snooze_count column');
-      }
+      // If we need to add snoozed_until and snooze_count AND fix the CHECK constraint
+      if (!tasksInfo.some(col => col.name === 'snoozed_until') || !hasStatusCheckFix) {
+        console.log('[Migration 007] Recreating tasks table to fix CHECK constraint and add snooze columns...');
 
-      // Create index for efficient snooze queries
-      db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_snoozed ON tasks(snoozed_until) WHERE snoozed_until IS NOT NULL');
-      console.log('[Migration 007] Added index for snoozed tasks');
+        // Step 1: Rename old table
+        db.exec('ALTER TABLE tasks RENAME TO tasks_old');
+
+        // Step 2: Create new table with correct schema
+        db.exec(`
+          CREATE TABLE tasks (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'inbox' CHECK (status IN ('planning', 'inbox', 'assigned', 'in_progress', 'testing', 'review', 'done', 'someday')),
+            priority TEXT DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+            assigned_agent_id TEXT REFERENCES agents(id),
+            created_by_agent_id TEXT REFERENCES agents(id),
+            workspace_id TEXT DEFAULT 'default' REFERENCES workspaces(id),
+            business_id TEXT DEFAULT 'default',
+            due_date TEXT,
+            is_priority_today INTEGER DEFAULT 0,
+            priority_rank INTEGER,
+            priority_note TEXT,
+            snoozed_until TEXT,
+            snooze_count INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now')),
+            planning_session_key TEXT,
+            planning_messages TEXT,
+            planning_complete INTEGER DEFAULT 0,
+            planning_spec TEXT,
+            planning_agents TEXT,
+            blocked_on TEXT,
+            blocked_reason TEXT,
+            tags TEXT,
+            life_bucket TEXT CHECK (life_bucket IN ('work','home','other')),
+            domain TEXT,
+            effort_bucket TEXT CHECK (effort_bucket IN ('quick-win','admin','deep-work')),
+            classification_confidence REAL DEFAULT 0,
+            classification_source TEXT DEFAULT 'auto',
+            suggested_next_step TEXT,
+            suggested_action TEXT CHECK (suggested_action IN ('auto_execute', 'needs_approval', 'needs_planning', 'blocked')),
+            archived_at TEXT
+          )
+        `);
+
+        // Step 3: Copy all data from old table
+        db.exec(`
+          INSERT INTO tasks SELECT * FROM tasks_old
+        `);
+
+        // Step 4: Drop old table
+        db.exec('DROP TABLE tasks_old');
+
+        // Step 5: Recreate indexes and triggers
+        db.exec(`
+          CREATE INDEX idx_tasks_status ON tasks(status);
+          CREATE INDEX idx_tasks_assigned ON tasks(assigned_agent_id);
+          CREATE INDEX idx_tasks_workspace ON tasks(workspace_id);
+          CREATE INDEX idx_tasks_priority_today ON tasks(workspace_id, is_priority_today, priority_rank);
+          CREATE INDEX idx_tasks_snoozed ON tasks(snoozed_until) WHERE snoozed_until IS NOT NULL;
+          
+          CREATE TRIGGER trg_tasks_done_unpin AFTER UPDATE OF status ON tasks 
+            WHEN NEW.status='done' 
+            BEGIN 
+              UPDATE tasks SET is_priority_today=0, priority_rank=NULL WHERE id=NEW.id; 
+            END;
+        `);
+
+        console.log('[Migration 007] Successfully recreated tasks table with someday status and snooze fields');
+      } else {
+        // Just add columns if table wasn't recreated
+        if (!tasksInfo.some(col => col.name === 'snoozed_until')) {
+          db.exec('ALTER TABLE tasks ADD COLUMN snoozed_until TEXT');
+          console.log('[Migration 007] Added snoozed_until column');
+        }
+
+        if (!tasksInfo.some(col => col.name === 'snooze_count')) {
+          db.exec('ALTER TABLE tasks ADD COLUMN snooze_count INTEGER DEFAULT 0');
+          console.log('[Migration 007] Added snooze_count column');
+        }
+
+        db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_snoozed ON tasks(snoozed_until) WHERE snoozed_until IS NOT NULL');
+        console.log('[Migration 007] Added index for snoozed tasks');
+      }
     }
   }
 ];
