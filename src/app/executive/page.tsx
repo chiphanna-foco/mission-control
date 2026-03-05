@@ -221,32 +221,28 @@ export default function ExecutiveDashboard() {
               <TrendingUp className="w-5 h-5 text-amber-400" />
               <h2 className="text-lg font-bold">Trending Insights (Last 30 Days)</h2>
             </div>
-            <Link
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                alert('Open your terminal and run:\nlast30 [topic]\n\nExamples:\nlast30 AI trends\nlast30 best tools for [task]\nlast30 what\'s new in [industry]');
-              }}
-              className="px-3 py-1 text-xs rounded bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
-            >
-              Research
-            </Link>
           </div>
-          <div className="text-sm text-mc-text-secondary">
-            <p className="mb-3">
-              Get real-time insights from Reddit, X, YouTube, TikTok, Hacker News, and more.
+          <div className="text-sm text-mc-text-secondary space-y-3">
+            <p>
+              Real-time trending data from Reddit, X, YouTube, TikTok, Hacker News, and beyond.
             </p>
-            <div className="space-y-2 bg-mc-bg/50 rounded p-3 border border-mc-border/50">
-              <div className="text-xs text-mc-text-secondary/70">
-                💡 <strong>Usage:</strong> Run <code className="bg-mc-bg px-1 rounded">last30 [topic]</code> in terminal
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-mc-bg/50 rounded p-3 border border-mc-border/50 text-center">
+                <div className="text-xs text-amber-400 mb-1">📈 Trending Topics</div>
+                <div className="text-xs text-mc-text-secondary">AI, startups, tools</div>
               </div>
-              <div className="text-xs text-mc-text-secondary/70">
-                📊 <strong>Example:</strong> <code className="bg-mc-bg px-1 rounded">last30 AI video tools</code>
+              <div className="bg-mc-bg/50 rounded p-3 border border-mc-border/50 text-center">
+                <div className="text-xs text-amber-400 mb-1">⭐ Top Recommendations</div>
+                <div className="text-xs text-mc-text-secondary">Products, services</div>
               </div>
-              <div className="text-xs text-mc-text-secondary/70">
-                🔍 <strong>What it does:</strong> Summarizes trending topics, top recommendations, and hot debates
+              <div className="bg-mc-bg/50 rounded p-3 border border-mc-border/50 text-center">
+                <div className="text-xs text-amber-400 mb-1">💬 Hot Debates</div>
+                <div className="text-xs text-mc-text-secondary">What people discuss</div>
               </div>
             </div>
+            <p className="text-xs text-mc-text-secondary/70 mt-2">
+              💡 Coming soon: Live trending data will appear here
+            </p>
           </div>
         </div>
 
