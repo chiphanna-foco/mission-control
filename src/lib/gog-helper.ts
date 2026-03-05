@@ -25,11 +25,12 @@ export async function fetchStalledEmailsFromGmail(): Promise<DigestEmail[]> {
   }
 
   try {
-    const emails = JSON.parse(output);
+    const response = JSON.parse(output);
+    const emails = response.messages || response || [];
     const stalled: DigestEmail[] = [];
     const now = Date.now();
 
-    for (const email of emails || []) {
+    for (const email of emails) {
       try {
         const timestamp = parseInt(email.internalDate, 10);
         const daysSince = (now - timestamp) / (1000 * 60 * 60 * 24);
@@ -66,28 +67,15 @@ export async function fetchStalledEmailsFromGmail(): Promise<DigestEmail[]> {
 }
 
 /**
- * Fetch upcoming meetings from Google Calendar
+ * Parse calendar events from gog JSON response
  */
-export async function fetchUpcomingMeetingsFromCalendar(): Promise<MeetingBrief[]> {
-  const now = new Date();
-  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-  // Get calendar ID (default to primary)
-  const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
-
-  const cmd = `gog calendar events "${calendarId}" --from "${now.toISOString()}" --to "${in24h.toISOString()}" --json 2>/dev/null`;
-  const output = runGog(cmd);
-
-  if (!output) {
-    console.log('gog Calendar fetch failed, returning empty list');
-    return [];
-  }
-
+function parseCalendarEvents(output: string): MeetingBrief[] {
   try {
-    const events = JSON.parse(output);
+    const response = JSON.parse(output);
+    const events = response.events || response || [];
     const meetings: MeetingBrief[] = [];
 
-    for (const event of events || []) {
+    for (const event of events) {
       try {
         const startTime = new Date(event.start?.dateTime || event.start?.date);
         const endTime = new Date(event.end?.dateTime || event.end?.date);
@@ -119,9 +107,32 @@ export async function fetchUpcomingMeetingsFromCalendar(): Promise<MeetingBrief[
       }
     }
 
-    return meetings.slice(0, 5); // Limit to next 5 meetings
+    return meetings;
   } catch (parseErr) {
     console.error('Failed to parse Calendar response:', parseErr);
     return [];
   }
+}
+
+/**
+ * Fetch upcoming meetings from Google Calendar (both work and personal)
+ */
+export async function fetchUpcomingMeetingsFromCalendar(): Promise<{
+  workMeetings: MeetingBrief[];
+  personalMeetings: MeetingBrief[];
+}> {
+  const now = new Date();
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // Fetch work calendar (chip@turbotenant.com)
+  const workCalendarCmd = `gog calendar events "chip@turbotenant.com" --from "${now.toISOString()}" --to "${in24h.toISOString()}" --json 2>/dev/null`;
+  const workOutput = runGog(workCalendarCmd);
+  const workMeetings = workOutput ? parseCalendarEvents(workOutput).slice(0, 5) : [];
+
+  // Fetch personal calendar (primary)
+  const personalCalendarCmd = `gog calendar events "primary" --from "${now.toISOString()}" --to "${in24h.toISOString()}" --json 2>/dev/null`;
+  const personalOutput = runGog(personalCalendarCmd);
+  const personalMeetings = personalOutput ? parseCalendarEvents(personalOutput).slice(0, 5) : [];
+
+  return { workMeetings, personalMeetings };
 }

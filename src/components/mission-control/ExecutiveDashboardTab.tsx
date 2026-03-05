@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   ActionItem,
   CalendarConflict,
@@ -7,6 +8,7 @@ import type {
   Priority,
   WeeklyMetricsPayload,
 } from '@/lib/executive-data';
+import { AttendeeProfileCard } from './AttendeeProfileCard';
 
 type ApiState<T> = {
   data: T | null;
@@ -162,8 +164,8 @@ export default function ExecutiveDashboardTab({
   onRefreshActionItems,
   onRefreshMetrics,
 }: ExecutiveDashboardTabProps) {
+  const [selectedAttendee, setSelectedAttendee] = useState<{ name: string; email: string } | null>(null);
   const digestData = digest.data ?? mockDigest;
-  const meetings = (upcoming.data?.meetings.length ? upcoming.data.meetings : mockUpcomingMeetings).slice(0, 3);
 
   const activeActionItems = (actionItems.data?.items ?? [])
     .filter((item) => !item.status.toLowerCase().includes('done'))
@@ -260,7 +262,7 @@ export default function ExecutiveDashboardTab({
 
       <section className="rounded-2xl bg-white border border-stone-200 p-5">
         <div className="flex items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-black">UPCOMING MEETINGS</h2>
+          <h2 className="text-lg font-black">UPCOMING MEETINGS - WORK</h2>
           <button
             onClick={onRefreshUpcoming}
             className="text-xs px-3 py-1.5 rounded-lg border border-stone-300 hover:border-stone-500"
@@ -274,19 +276,107 @@ export default function ExecutiveDashboardTab({
         {upcoming.note ? <p className="text-xs text-amber-700 mb-3">{upcoming.note}</p> : null}
 
         <div className="space-y-3">
-          {meetings.map((meeting) => (
-            <div key={meeting.id} className="rounded-xl border border-stone-200 p-4 hover:border-stone-300 transition-colors">
+          {((upcoming.data as any)?.workMeetings || []).slice(0, 3).map((meeting: any) => (
+            <div key={meeting.id} className="rounded-xl border border-blue-200 bg-blue-50 p-4 hover:border-blue-300 transition-colors">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-bold">{meeting.title}</p>
-                  <p className="text-xs text-stone-600">{formatDateTime(meeting.startAt)} - {formatDateTime(meeting.endAt)}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-blue-900 truncate">{meeting.title}</p>
+                  <p className="text-xs text-blue-700 truncate">{formatDateTime(meeting.startAt)} - {formatDateTime(meeting.endAt)}</p>
                 </div>
-                <button className="text-xs px-2 py-1 rounded-md border border-stone-300 hover:bg-stone-100">Generate brief</button>
+                <button className="text-xs px-2 py-1 rounded-md border border-blue-300 bg-white hover:bg-blue-100 flex-shrink-0">Brief</button>
               </div>
-              <p className="text-xs text-stone-700 mt-2">{meeting.emailContext}</p>
-              <p className="text-xs font-semibold mt-2">Attendees: {meeting.attendees.map((a) => a.name).join(', ') || 'No attendees listed'}</p>
+              <p className="text-xs text-blue-800 mt-2 line-clamp-2">{meeting.emailContext}</p>
+              <div className="text-xs font-semibold mt-2 text-blue-900 relative">
+                <p className="mb-1">Attendees:</p>
+                <div className="flex flex-wrap gap-1">
+                  {(meeting.attendees || []).slice(0, 4).map((a: any, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedAttendee({ name: a.name, email: a.email })}
+                      className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-900 px-2 py-1 rounded truncate cursor-pointer"
+                      title={a.email}
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                  {meeting.attendees?.length > 4 && (
+                    <span className="text-xs bg-blue-100 text-blue-900 px-2 py-1 rounded">
+                      +{meeting.attendees.length - 4}
+                    </span>
+                  )}
+                </div>
+                {selectedAttendee && (
+                  <div className="absolute bottom-full left-0 mb-2 z-50">
+                    <AttendeeProfileCard
+                      attendee={selectedAttendee}
+                      onClose={() => setSelectedAttendee(null)}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           ))}
+          {(!upcoming.data || (upcoming.data as any)?.workMeetings?.length === 0) && !upcoming.loading && (
+            <p className="text-sm text-stone-500">No upcoming work meetings.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-white border border-stone-200 p-5">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="text-lg font-black">UPCOMING MEETINGS - PERSONAL</h2>
+          <button
+            onClick={onRefreshUpcoming}
+            className="text-xs px-3 py-1.5 rounded-lg border border-stone-300 hover:border-stone-500"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {((upcoming.data as any)?.personalMeetings || []).slice(0, 3).map((meeting: any) => (
+            <div key={meeting.id} className="rounded-xl border border-stone-200 p-4 hover:border-stone-300 transition-colors">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold truncate">{meeting.title}</p>
+                  <p className="text-xs text-stone-600 truncate">{formatDateTime(meeting.startAt)} - {formatDateTime(meeting.endAt)}</p>
+                </div>
+                <button className="text-xs px-2 py-1 rounded-md border border-stone-300 hover:bg-stone-100 flex-shrink-0">Brief</button>
+              </div>
+              <p className="text-xs text-stone-700 mt-2 line-clamp-2">{meeting.emailContext}</p>
+              <div className="text-xs font-semibold mt-2 relative">
+                <p className="mb-1">Attendees:</p>
+                <div className="flex flex-wrap gap-1">
+                  {(meeting.attendees || []).slice(0, 4).map((a: any, idx: number) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedAttendee({ name: a.name, email: a.email })}
+                      className="text-xs bg-stone-100 hover:bg-stone-200 text-stone-900 px-2 py-1 rounded truncate cursor-pointer"
+                      title={a.email}
+                    >
+                      {a.name}
+                    </button>
+                  ))}
+                  {meeting.attendees?.length > 4 && (
+                    <span className="text-xs bg-stone-100 text-stone-900 px-2 py-1 rounded">
+                      +{meeting.attendees.length - 4}
+                    </span>
+                  )}
+                </div>
+                {selectedAttendee && (
+                  <div className="absolute bottom-full left-0 mb-2 z-50">
+                    <AttendeeProfileCard
+                      attendee={selectedAttendee}
+                      onClose={() => setSelectedAttendee(null)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {(!upcoming.data || (upcoming.data as any)?.personalMeetings?.length === 0) && !upcoming.loading && (
+            <p className="text-sm text-stone-500">No upcoming personal meetings.</p>
+          )}
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import NavBar from '@/components/NavBar';
 import './globals.css';
 
 export const viewport: Viewport = {
@@ -36,7 +37,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-mc-bg text-mc-text min-h-screen">{children}</body>
+      <body className="bg-mc-bg text-mc-text min-h-screen">
+        <NavBar />
+        {children}
+      </body>
     </html>
   );
 }

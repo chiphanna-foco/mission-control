@@ -4,6 +4,7 @@ import { EventEmitter } from 'events';
 import * as nodeCrypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import WebSocket from 'ws';
 import type { OpenClawMessage, OpenClawSessionInfo } from '../types';
 
 const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
@@ -206,7 +207,7 @@ export class OpenClawClient extends EventEmitter {
                 role,
                 scopes,
                 signedAtMs,
-                token: this.token || null,
+                token: this.token || '',
                 nonce,
               });
               const signature = signPayload(this.deviceIdentity.privateKeyPem, payload);
@@ -225,7 +226,7 @@ export class OpenClawClient extends EventEmitter {
                     mode: clientMode,
                   },
                   auth: {
-                    token: this.token,
+                    token: this.token || '',
                   },
                   role,
                   scopes,

@@ -264,6 +264,12 @@ export default function WorkspacePage() {
                 Business KPIs
               </button>
             </div>
+            <Link
+              href="/mission-control"
+              className="ml-3 px-3 py-1.5 text-sm rounded-md bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-medium transition-colors"
+            >
+              📊 Executive Dashboard
+            </Link>
           </div>
 
           {activeTab === 'mission_queue' ? (

@@ -16,19 +16,22 @@ export async function GET(req: NextRequest) {
       TTL_MS,
       async () => {
         // Try live Google Calendar data first
-        const liveMeetings = await fetchUpcomingMeetingsFromCalendar();
+        const { workMeetings, personalMeetings } = await fetchUpcomingMeetingsFromCalendar();
+        const totalLive = workMeetings.length + personalMeetings.length;
         
         // Fall back to mock data
         const mockResponse = await getUpcomingMeetings();
         
         // Use live meetings if available, otherwise mock
-        const meetings = liveMeetings.length > 0 ? liveMeetings : mockResponse.meetings;
+        const meetings = totalLive > 0 ? [...workMeetings, ...personalMeetings] : mockResponse.meetings;
 
         return {
           generatedAt: new Date().toISOString(),
           meetings,
-          live: liveMeetings.length > 0,
-          note: liveMeetings.length > 0 ? 'Loaded from Google Calendar via gog' : 'Using mock data',
+          workMeetings,
+          personalMeetings,
+          live: totalLive > 0,
+          note: totalLive > 0 ? 'Loaded from Google Calendar via gog' : 'Using mock data',
         };
       },
       forceRefresh,
