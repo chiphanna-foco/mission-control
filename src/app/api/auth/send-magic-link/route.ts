@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Magic code sent to ${normalizedEmail}`,
+      message: 'Magic code sent to email',
     });
   } catch (error) {
     console.error('Magic link error:', error);

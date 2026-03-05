@@ -123,7 +123,7 @@ export default function LoginPage() {
 
           <input
             type="email"
-            placeholder="chip@turbotenant.com or chip.hanna@gmail.com"
+            placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -140,10 +140,6 @@ export default function LoginPage() {
             {loading ? 'Sending...' : 'Send Magic Link'}
           </button>
         </form>
-
-        <div className="mt-6 p-4 bg-blue-50 rounded text-xs text-blue-800">
-          <strong>Allowed:</strong> chip@turbotenant.com, chip.hanna@gmail.com
-        </div>
       </div>
     </div>
   );

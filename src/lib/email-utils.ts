@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-const GMAIL_USER = process.env.GMAIL_USER || 'chip.hanna@gmail.com';
+const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 
 let transporter: nodemailer.Transporter | null = null;

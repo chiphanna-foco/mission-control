@@ -1,12 +1,19 @@
 import { randomBytes } from 'crypto';
 import { getDb } from './db';
 
-const ALLOWED_EMAILS = ['chip@turbotenant.com', 'chip.hanna@gmail.com'];
+// Allowed emails are configured via ALLOWED_EMAILS environment variable (comma-separated)
+function getAllowedEmails(): string[] {
+  const allowed = process.env.ALLOWED_EMAILS || '';
+  return allowed
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter((e) => e.length > 0);
+}
 const CODE_EXPIRY = 15 * 60 * 1000; // 15 minutes
 const SESSION_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
 
 export function isAllowedEmail(email: string): boolean {
-  return ALLOWED_EMAILS.includes(email.toLowerCase());
+  return getAllowedEmails().includes(email.toLowerCase());
 }
 
 export function generateCode(): string {
