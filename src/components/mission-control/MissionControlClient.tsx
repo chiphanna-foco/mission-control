@@ -202,10 +202,10 @@ export default function MissionControlClient() {
     <div className="min-h-screen bg-stone-100 text-stone-900">
       <header className="bg-white border-b border-stone-200">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black">Mission Control</h1>
+          <a href="/workspace/default" className="hover:opacity-70 transition-opacity">
+            <h1 className="text-2xl font-black cursor-pointer">Mission Control</h1>
             <p className="text-sm text-stone-600">Chip&apos;s operating system for the week</p>
-          </div>
+          </a>
           <button
             onClick={() => void loadAll(true)}
             disabled={globalLoading}

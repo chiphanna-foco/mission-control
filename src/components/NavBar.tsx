@@ -33,6 +33,18 @@ export default function NavBar() {
               </Link>
 
               <Link
+                href="/executive"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/executive')
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'text-mc-text-secondary hover:bg-mc-bg/50'
+                }`}
+              >
+                <Grid2X2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Executive</span>
+              </Link>
+
+              <Link
                 href="/ideas"
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
                   isActive('/ideas')

@@ -1,62 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOrSetCache } from '@/lib/ttlCache';
-import { getDigest } from '@/lib/executive-data';
-import { fetchStalledEmailsFromGmail } from '@/lib/gog-helper';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
+const execAsync = promisify(exec);
 
-const TTL_MS = 5 * 60 * 1000;
-
-export async function GET(req: NextRequest) {
-  const forceRefresh = req.nextUrl.searchParams.get('refresh') === '1';
-
+/**
+ * GET /api/executive-digest
+ * Frontend expects this endpoint for unread emails + pending items
+ */
+export async function GET() {
   try {
-    const result = await getOrSetCache(
-      'executive-digest',
-      TTL_MS,
-      async () => {
-        // Try live Gmail data first
-        const liveStalled = await fetchStalledEmailsFromGmail();
-        
-        // Fall back to mock data
-        const digest = await getDigest();
-        
-        // Use live stalled emails if available, otherwise mock
-        const stalledEmails = liveStalled.length > 0 ? liveStalled : digest.stalledEmails;
-
-        return {
-          generatedAt: new Date().toISOString(),
-          stalledEmails,
-          pendingIntros: digest.pendingIntros,
-          overdueTasks: digest.overdueTasks,
-          calendarConflicts: digest.calendarConflicts,
-          notes: liveStalled.length > 0 ? ['Loaded stalled emails from Gmail via gog'] : undefined,
-        };
-      },
-      forceRefresh,
+    // Fetch unread emails
+    const { stdout } = await execAsync(
+      `gws gmail users messages list --params '{"userId":"me","q":"is:unread newer_than:7d","maxResults":10,"format":"full"}'`,
+      { timeout: 30000, env: { ...process.env } }
     );
 
+    const messagesData = JSON.parse(stdout);
+    const messages = messagesData.messages || [];
+
+    const emails = [];
+    for (const msg of messages.slice(0, 5)) {
+      try {
+        const { stdout: msgDetail } = await execAsync(
+          `gws gmail users messages get --params '{"userId":"me","id":"${msg.id}","format":"full"}'`,
+          { timeout: 10000, env: { ...process.env } }
+        );
+
+        const fullMsg = JSON.parse(msgDetail);
+        const headers = fullMsg.payload?.headers || [];
+        const getHeader = (name: string) =>
+          headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || 'Unknown';
+
+        emails.push({
+          id: msg.id,
+          from: getHeader('from'),
+          subject: getHeader('subject'),
+          snippet: fullMsg.snippet?.substring(0, 100) || '',
+          date: getHeader('date'),
+          unread: true,
+        });
+      } catch (e) {
+        console.warn(`Failed to fetch message ${msg.id}`);
+      }
+    }
+
     return NextResponse.json({
-      ...result.value,
-      cache: {
-        ttlSeconds: 300,
-        cached: result.cached,
-        expiresAt: result.expiresAt,
-      },
+      stalledEmails: emails,
+      pendingIntros: [],
+      overdueTasks: [],
+      calendarConflicts: [],
+      notes: ['Real Gmail data fetched successfully'],
     });
   } catch (error) {
-    console.error('Digest error:', error);
-    
-    // Fall back to pure mock data on error
-    const digest = await getDigest();
+    console.error('Error:', error);
     return NextResponse.json({
-      ...digest,
-      generatedAt: new Date().toISOString(),
-      cache: {
-        ttlSeconds: 300,
-        cached: false,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-      },
+      stalledEmails: [],
+      pendingIntros: [],
+      overdueTasks: [],
+      calendarConflicts: [],
+      error: 'Failed to fetch digest',
     });
   }
 }

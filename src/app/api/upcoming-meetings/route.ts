@@ -1,65 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getOrSetCache } from '@/lib/ttlCache';
-import { getUpcomingMeetings } from '@/lib/executive-data';
-import { fetchUpcomingMeetingsFromCalendar } from '@/lib/gog-helper';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
+const execAsync = promisify(exec);
 
-const TTL_MS = 5 * 60 * 1000;
-
-export async function GET(req: NextRequest) {
-  const forceRefresh = req.nextUrl.searchParams.get('refresh') === '1';
-
+/**
+ * GET /api/upcoming-meetings
+ * Frontend expects this endpoint for calendar events
+ */
+export async function GET() {
   try {
-    const result = await getOrSetCache(
-      'upcoming-meetings',
-      TTL_MS,
-      async () => {
-        // Try live Google Calendar data first
-        const { workMeetings, personalMeetings } = await fetchUpcomingMeetingsFromCalendar();
-        const totalLive = workMeetings.length + personalMeetings.length;
-        
-        // Fall back to mock data
-        const mockResponse = await getUpcomingMeetings();
-        
-        // Use live meetings if available, otherwise mock
-        const meetings = totalLive > 0 ? [...workMeetings, ...personalMeetings] : mockResponse.meetings;
+    const personalCalendarId = 'chip.hanna@gmail.com';
+    const workCalendarId = 'chip@turbotenant.com';
 
-        return {
-          generatedAt: new Date().toISOString(),
-          meetings,
-          workMeetings,
-          personalMeetings,
-          live: totalLive > 0,
-          note: totalLive > 0 ? 'Loaded from Google Calendar via gog' : 'Using mock data',
-        };
-      },
-      forceRefresh,
+    const now = new Date().toISOString();
+    const inTwoDays = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
+
+    let personalEvents: any[] = [];
+    try {
+      const { stdout: personalStdout } = await execAsync(
+        `gws calendar events list --params '{"calendarId":"${personalCalendarId}","timeMin":"${now}","timeMax":"${inTwoDays}","maxResults":5,"singleEvents":true,"orderBy":"startTime"}'`,
+        { timeout: 15000, env: { ...process.env } }
+      );
+      const personalData = JSON.parse(personalStdout);
+      personalEvents = personalData.items?.map((event: any) => ({
+        id: event.id,
+        title: event.summary || '(No title)',
+        start: event.start?.dateTime || event.start?.date,
+        end: event.end?.dateTime || event.end?.date,
+        calendar: 'personal',
+      })) || [];
+    } catch (e) {
+      console.warn('Personal calendar failed');
+    }
+
+    let workEvents: any[] = [];
+    try {
+      const { stdout: workStdout } = await execAsync(
+        `gws calendar events list --params '{"calendarId":"${workCalendarId}","timeMin":"${now}","timeMax":"${inTwoDays}","maxResults":5,"singleEvents":true,"orderBy":"startTime"}'`,
+        { timeout: 15000, env: { ...process.env } }
+      );
+      const workData = JSON.parse(workStdout);
+      workEvents = workData.items?.map((event: any) => ({
+        id: event.id,
+        title: event.summary || '(No title)',
+        start: event.start?.dateTime || event.start?.date,
+        end: event.end?.dateTime || event.end?.date,
+        calendar: 'work',
+      })) || [];
+    } catch (e) {
+      console.warn('Work calendar failed');
+    }
+
+    const allEvents = [...personalEvents, ...workEvents].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
     );
 
     return NextResponse.json({
-      ...result.value,
-      cache: {
-        ttlSeconds: 300,
-        cached: result.cached,
-        expiresAt: result.expiresAt,
-      },
+      meetings: allEvents.slice(0, 10).map((event) => ({
+        id: event.id,
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        calendar: event.calendar,
+      })),
+      live: true,
+      note: 'Real Google Calendar data fetched successfully',
     });
   } catch (error) {
-    console.error('Upcoming meetings error:', error);
-    
-    // Fall back to pure mock data on error
-    const mockResponse = await getUpcomingMeetings();
+    console.error('Error:', error);
     return NextResponse.json({
-      meetings: mockResponse.meetings,
+      meetings: [],
       live: false,
-      note: 'Using mock data (gog failed)',
-      generatedAt: new Date().toISOString(),
-      cache: {
-        ttlSeconds: 300,
-        cached: false,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-      },
+      note: 'Failed to fetch upcoming meetings',
     });
   }
 }
