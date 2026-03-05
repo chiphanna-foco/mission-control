@@ -1,26 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCode, createSession } from '@/lib/auth-utils';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, code } = await req.json();
+    const { code } = await req.json();
 
-    if (!email || !code || code.length !== 6) {
+    if (!code || typeof code !== 'string' || code.length !== 6) {
       return NextResponse.json({ error: 'Invalid code' }, { status: 400 });
     }
 
-    // TODO: Verify code and set session cookie
+    // Verify code and get email
+    const email = await verifyCode(code);
 
-    // For now, return success
-    const response = NextResponse.json({ success: true });
+    if (!email) {
+      return NextResponse.json({ error: 'Invalid or expired code' }, { status: 401 });
+    }
 
-    // Set session cookie (will be replaced with real logic)
+    // Create session
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+    const userAgent = req.headers.get('user-agent');
+    const sessionToken = await createSession(email, ipAddress || undefined, userAgent || undefined);
+
+    if (!sessionToken) {
+      return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+    }
+
+    // Create response
+    const response = NextResponse.json({
+      success: true,
+      email,
+    });
+
+    // Set secure session cookie
     response.cookies.set({
       name: 'mc_session',
-      value: 'temp-session-token',
+      value: sessionToken,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
     });
 
