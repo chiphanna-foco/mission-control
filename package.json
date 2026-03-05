@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3001 >> /tmp/mc-$(date +%Y-%m-%d).log 2>&1",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "db:migrate": "tsx src/lib/db/migrate.ts",
     "db:seed": "tsx src/lib/db/seed.ts",
