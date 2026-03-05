@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchLinkedInProfile } from '@/lib/linkedin-scraper';
-import { getCachedProfile, queueProfileScrape } from '@/lib/linkedin-scraper-advanced';
+// LinkedIn scraper advanced features removed - browser automation not available on Railway
 
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 second timeout for scraping
@@ -18,30 +18,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Check if we have a cached scraped profile
-    const cachedFull = getCachedProfile(email);
-    if (cachedFull) {
-      return NextResponse.json({
-        profile: cachedFull,
-        source: 'cached',
-        linkedInUrl: cachedFull.profileUrl,
-      });
-    }
-
-    // If scrape requested and not cached, queue scraping in background
-    if (scrape) {
-      queueProfileScrape(email, name).catch(console.error);
-    }
-
-    // Return inferred profile while scraping happens in background
-    const inferredProfile = await fetchLinkedInProfile(name, email);
+    // Return inferred profile (browser scraping not available on Railway)
+    const profile = await fetchLinkedInProfile(name, email);
 
     return NextResponse.json({
-      profile: inferredProfile,
+      profile,
       source: 'inferred',
-      linkedInUrl: inferredProfile.profileUrl,
-      scrapingQueued: scrape,
-      message: scrape ? 'Full profile scraping queued - check back in a few seconds' : undefined,
+      linkedInUrl: profile.profileUrl,
+      note: 'Advanced browser-based scraping disabled on Railway (Puppeteer not available)',
     });
   } catch (error) {
     console.error('LinkedIn profile fetch error:', error);
