@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, AlertCircle, Calendar, Mail, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Calendar, Mail, CheckCircle2, AlertTriangle, Zap, TrendingUp } from 'lucide-react';
 
 interface DigestEmail {
   id: string;
@@ -211,6 +211,42 @@ export default function ExecutiveDashboard() {
             ) : (
               <div className="text-mc-text-secondary text-center py-4">No upcoming events</div>
             )}
+          </div>
+        </div>
+
+        {/* Trending Insights Section */}
+        <div className="mt-8 bg-mc-bg-secondary border border-mc-border rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-amber-400" />
+              <h2 className="text-lg font-bold">Trending Insights (Last 30 Days)</h2>
+            </div>
+            <Link
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                alert('Open your terminal and run:\nlast30 [topic]\n\nExamples:\nlast30 AI trends\nlast30 best tools for [task]\nlast30 what\'s new in [industry]');
+              }}
+              className="px-3 py-1 text-xs rounded bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
+            >
+              Research
+            </Link>
+          </div>
+          <div className="text-sm text-mc-text-secondary">
+            <p className="mb-3">
+              Get real-time insights from Reddit, X, YouTube, TikTok, Hacker News, and more.
+            </p>
+            <div className="space-y-2 bg-mc-bg/50 rounded p-3 border border-mc-border/50">
+              <div className="text-xs text-mc-text-secondary/70">
+                💡 <strong>Usage:</strong> Run <code className="bg-mc-bg px-1 rounded">last30 [topic]</code> in terminal
+              </div>
+              <div className="text-xs text-mc-text-secondary/70">
+                📊 <strong>Example:</strong> <code className="bg-mc-bg px-1 rounded">last30 AI video tools</code>
+              </div>
+              <div className="text-xs text-mc-text-secondary/70">
+                🔍 <strong>What it does:</strong> Summarizes trending topics, top recommendations, and hot debates
+              </div>
+            </div>
           </div>
         </div>
 
