@@ -46,3 +46,13 @@ next-env.d.ts
 
 # local development notes/handoffs (may contain sensitive context)
 /thoughts/
+
+# 🔒 Secrets & credentials
+.env
+.env.*
+!.env.example
+.env.slack
+secrets/
+*.key
+*.pem
+credentials.json
