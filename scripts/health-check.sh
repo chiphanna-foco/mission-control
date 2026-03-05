@@ -26,12 +26,16 @@ restart_server() {
   # Hard kill everything
   pkill -9 -f "next" > /dev/null 2>&1
   pkill -9 -f "npm" > /dev/null 2>&1
+  pkill -9 node > /dev/null 2>&1
   sleep 4
   
-  # Start fresh
+  # Clean build cache
+  rm -rf "$MC_DIR/.next" > /dev/null 2>&1
+  
+  # Start fresh (using direct next command to avoid npm forcing wrong port)
   cd "$MC_DIR"
-  PORT=$PORT npm run dev > /tmp/mission-control.log 2>&1 &
-  sleep 6
+  PORT=$PORT ./node_modules/.bin/next dev > /tmp/mission-control.log 2>&1 &
+  sleep 8
   
   # Verify restart worked
   if check_health; then
