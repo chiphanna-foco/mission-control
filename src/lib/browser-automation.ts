@@ -4,7 +4,7 @@
  * Note: For production LinkedIn scraping, consider using Camofox instead
  */
 
-import puppeteer from 'puppeteer';
+import puppeteer, { HTTPRequest } from 'puppeteer';
 
 let browserInstance: any = null;
 
@@ -18,7 +18,7 @@ async function getBrowser() {
 
   try {
     browserInstance = await puppeteer.launch({
-      headless: 'new',
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -67,7 +67,7 @@ export const browser = {
 
     // Disable images & stylesheets for faster loading
     await page.setRequestInterception(true);
-    page.on('request', (req) => {
+    page.on('request', (req: HTTPRequest) => {
       const resourceType = req.resourceType();
       if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
         req.abort();

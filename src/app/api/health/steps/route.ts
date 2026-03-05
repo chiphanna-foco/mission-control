@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 /**
  * POST /api/health/steps

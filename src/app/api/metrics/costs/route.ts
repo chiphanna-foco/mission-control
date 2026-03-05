@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+// Database imports removed - this route doesn't use database
 
 export async function GET() {
   try {

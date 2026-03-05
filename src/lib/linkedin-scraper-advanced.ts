@@ -62,7 +62,7 @@ export async function scrapeLinkedInProfile(
       // Extract first profile link
       const profileLink = await page.$eval(
         'a[href*="/in/"]',
-        (el) => (el as HTMLAnchorElement).href,
+        (el: Element) => (el as HTMLAnchorElement).href,
       ).catch(() => null);
 
       if (!profileLink) {

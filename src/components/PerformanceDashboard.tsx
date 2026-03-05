@@ -233,7 +233,7 @@ export function PerformanceDashboard() {
                   ? 'bg-yellow-500'
                   : 'bg-red-500'
               }`} />
-              {agent?.status.charAt(0).toUpperCase() + agent?.status.slice(1)}
+              {agent?.status ? agent.status.charAt(0).toUpperCase() + agent.status.slice(1) : 'Unknown'}
             </div>
           </div>
           <div>
