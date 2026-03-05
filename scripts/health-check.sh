@@ -36,10 +36,6 @@ restart_server() {
   # Verify restart worked
   if check_health; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Server restarted successfully" >> "$LOG_FILE"
-    # Notify if possible
-    if command -v nc &> /dev/null; then
-      echo "🤖 Mission Control auto-restarted (server was down)" | nc -u localhost 6000 2>/dev/null || true
-    fi
     return 0
   else
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Server restart failed!" >> "$LOG_FILE"
@@ -47,14 +43,44 @@ restart_server() {
   fi
 }
 
+restart_cloudflare_tunnel() {
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] 🔄 Restarting Cloudflare tunnel..." >> "$LOG_FILE"
+  
+  # Kill tunnel
+  pkill -f "cloudflared tunnel" > /dev/null 2>&1
+  sleep 3
+  
+  # Restart tunnel
+  /opt/homebrew/bin/cloudflared tunnel run > /tmp/cloudflare-tunnel.log 2>&1 &
+  sleep 5
+  
+  # Verify tunnel is running
+  if pgrep -f "cloudflared tunnel" > /dev/null; then
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✓ Cloudflare tunnel restarted" >> "$LOG_FILE"
+    return 0
+  else
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✗ Cloudflare tunnel restart failed!" >> "$LOG_FILE"
+    return 1
+  fi
+}
+
 # Main logic
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] Health check running..." >> "$LOG_FILE"
 
+# Check server health
 if ! check_health; then
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] Server is down, attempting restart..." >> "$LOG_FILE"
   restart_server
 else
-  echo "[$(date +'%Y-%m-%d %H:%M:%S')] Server is healthy, no action needed" >> "$LOG_FILE"
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] Server is healthy" >> "$LOG_FILE"
+fi
+
+# Check Cloudflare tunnel health (must be running)
+if ! pgrep -f "cloudflared tunnel" > /dev/null; then
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] Cloudflare tunnel is down, attempting restart..." >> "$LOG_FILE"
+  restart_cloudflare_tunnel
+else
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] Cloudflare tunnel is running" >> "$LOG_FILE"
 fi
 
 # Keep last 100 lines of log
