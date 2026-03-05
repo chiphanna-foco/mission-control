@@ -255,25 +255,23 @@ const migrations: Migration[] = [
     }
   },
   {
-    id: '007.5',
-    name: 'import_local_mac_mini_tasks',
+    id: '008',
+    name: 'import_113_tasks_from_local_db',
     up: (db) => {
-      console.log('[Migration 007.5] Importing tasks from local Mac mini database...');
+      console.log('[Migration 008] Importing 113 tasks from local Mac mini database...');
 
-      db.exec(`
-        INSERT OR REPLACE INTO tasks (id, title, description, status, priority, assigned_agent_id, created_by_agent_id, workspace_id, business_id, due_date, created_at, updated_at, planning_session_key, planning_messages, planning_complete, planning_spec, planning_agents, is_priority_today, priority_rank, priority_note, snoozed_until, snooze_count)
-        VALUES 
-        ('07ac6b53-aafb-48a5-a341-88778b02245e', 'Set up development environment', NULL, 'done', 'high', '231c69ef-8be1-4ec5-803d-10154e985334', '231c69ef-8be1-4ec5-803d-10154e985334', 'default', 'default', NULL, '2026-02-28T18:41:30.875Z', '2026-02-28T18:41:30.875Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('5e3a0fee-0b12-4166-b01b-a1a033cd32fd', 'Create project documentation', NULL, 'in_progress', 'normal', '86f20f5b-b0ff-4bc2-b415-cc96f791ca0a', '231c69ef-8be1-4ec5-803d-10154e985334', 'default', 'default', NULL, '2026-02-28T18:41:30.875Z', '2026-02-28T18:41:30.875Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('a131a67a-63eb-4184-9dd8-6f197701ae84', 'Research competitor features', NULL, 'assigned', 'normal', '46d8a957-c035-4c3b-894f-ed4ca3b5f0d9', '231c69ef-8be1-4ec5-803d-10154e985334', 'default', 'default', NULL, '2026-02-28T18:41:30.875Z', '2026-02-28T18:41:30.875Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('e47bebcc-7baf-44dc-8455-df05c40256e9', 'Design new dashboard layout', NULL, 'inbox', 'low', NULL, '231c69ef-8be1-4ec5-803d-10154e985334', 'default', 'default', NULL, '2026-02-28T18:41:30.875Z', '2026-02-28T18:41:30.875Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('be423e24-d6d3-4b72-ae4d-196f700beb8d', 'Set up development environment', NULL, 'done', 'high', 'b72295a5-8971-4639-9604-3bf1c75576ea', 'b72295a5-8971-4639-9604-3bf1c75576ea', 'default', 'Default Workspace', NULL, '2026-02-28T18:47:19.078Z', '2026-02-28T18:47:19.078Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('a3cf2ed2-c5e2-4ee3-af39-9f7dd452dde0', 'Create project documentation', NULL, 'in_progress', 'normal', 'ebfeed23-7fa3-4739-bf1c-51faf2bdf521', 'b72295a5-8971-4639-9604-3bf1c75576ea', 'default', 'Default Workspace', NULL, '2026-02-28T18:47:19.078Z', '2026-02-28T18:47:19.078Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('c7b965ce-2efb-4a76-b685-d3b368447ba0', 'Research competitor features', NULL, 'assigned', 'normal', 'f45361d7-7c0c-4d8e-9189-69a67519982e', 'b72295a5-8971-4639-9604-3bf1c75576ea', 'default', 'Default Workspace', NULL, '2026-02-28T18:47:19.078Z', '2026-02-28T18:47:19.078Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0),
-        ('2de44f5c-0b1d-42b7-8167-e4baedbd5324', 'Design new dashboard layout', NULL, 'inbox', 'low', NULL, 'b72295a5-8971-4639-9604-3bf1c75576ea', 'default', 'Default Workspace', NULL, '2026-02-28T18:47:19.078Z', '2026-02-28T18:47:19.078Z', NULL, NULL, 0, NULL, NULL, 0, NULL, NULL, NULL, 0);
-      `);
-
-      console.log('[Migration 007.5] Imported 8 tasks from local database');
+      // Read the full SQL from the migration file
+      const fs = require('fs');
+      const path = require('path');
+      try {
+        const sqlPath = path.join(__dirname, 'migrations', '008-import-113-tasks.sql');
+        const sql = fs.readFileSync(sqlPath, 'utf-8');
+        db.exec(sql);
+        console.log('[Migration 008] ✓ Imported 113 tasks successfully');
+      } catch (err) {
+        console.error('[Migration 008] Failed:', err);
+        throw err;
+      }
     }
   },
   {
