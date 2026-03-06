@@ -255,7 +255,6 @@ const migrations: Migration[] = [
     }
   },
   {
-  {
     id: '008.5',
     name: 'import_113_tasks_from_local_db_fixed',
     up: (db) => {
