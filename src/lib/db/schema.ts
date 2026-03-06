@@ -214,4 +214,33 @@ CREATE INDEX IF NOT EXISTS idx_conversation_events_thread_ts ON conversation_eve
 CREATE INDEX IF NOT EXISTS idx_conversation_events_channel_ts ON conversation_events(channel, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_conversation_links_event ON conversation_task_links(conversation_event_id);
 CREATE INDEX IF NOT EXISTS idx_conversation_links_task ON conversation_task_links(task_id);
+
+-- Auth: Magic links for passwordless login
+CREATE TABLE IF NOT EXISTS magic_links (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  code TEXT NOT NULL UNIQUE,
+  expires_at INTEGER NOT NULL,
+  confirmed BOOLEAN DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  ip_address TEXT,
+  user_agent TEXT
+);
+
+-- Auth: User sessions
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  last_active_at INTEGER NOT NULL,
+  ip_address TEXT,
+  user_agent TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(email);
+CREATE INDEX IF NOT EXISTS idx_magic_links_code ON magic_links(code);
+CREATE INDEX IF NOT EXISTS idx_sessions_email ON sessions(email);
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
 `;
