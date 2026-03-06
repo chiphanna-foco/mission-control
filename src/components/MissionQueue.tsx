@@ -8,6 +8,7 @@ import { TaskModal } from './TaskModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { BlockedPanel } from './BlockedPanel';
 import { formatDistanceToNow } from 'date-fns';
+import { safeDate } from '@/lib/date-utils';
 
 interface MissionQueueProps {
   workspaceId?: string;
@@ -45,7 +46,7 @@ export function MissionQueue({ workspaceId }: MissionQueueProps) {
     () => workspaceTasks
       .filter((task) => task.is_priority_today && task.status !== 'done')
       .sort((a, b) => (a.priority_rank ?? 999) - (b.priority_rank ?? 999) ||
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        safeDate(a.created_at).getTime() - safeDate(b.created_at).getTime())
       .slice(0, MAX_PRIORITIES),
     [workspaceTasks]
   );
@@ -518,7 +519,7 @@ function TaskCard({ task, onDragStart, onClick, isDragging, compact = false }: T
           </div>
           {!compact && (
             <span className="text-[10px] text-mc-text-secondary/60">
-              {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
+              {formatDistanceToNow(safeDate(task.created_at), { addSuffix: true })}
             </span>
           )}
         </div>
