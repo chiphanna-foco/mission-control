@@ -255,13 +255,15 @@ const migrations: Migration[] = [
     }
   },
   {
+  {
     id: '008.5',
     name: 'import_113_tasks_from_local_db_fixed',
     up: (db) => {
-      console.log('[Migration 008] Importing 113 tasks from local Mac mini database...');
+      console.log('[Migration 008.5] Importing 113 tasks from local Mac mini database...');
 
       try {
         // All 113 tasks from /.clawdbot/state/mission-control.db
+        // Status mapping: backlog→inbox, in-progress→in_progress, in-review→review
         // Priority mapping: critical→high, medium→normal
         db.exec(`
           INSERT OR REPLACE INTO tasks (id, title, description, status, priority, assigned_agent_id, created_by_agent_id, workspace_id, business_id, due_date, created_at, updated_at, is_priority_today, priority_rank, priority_note, snoozed_until, snooze_count) VALUES
@@ -361,33 +363,32 @@ const migrations: Migration[] = [
           ('_lav_vL0oYnEf6MxuLNOt', 'Set up development environment (Node, Bun, Python)', '', 'inbox', 'high', NULL, NULL, 'default', 'default', NULL, '1770270548536', '1770270548536', 0, NULL, NULL, NULL, 0),
           ('LnB1QOqCDjdoKeZ4_74Wz', 'Transfer active project files', '', 'inbox', 'high', NULL, NULL, 'default', 'default', NULL, '1770270548536', '1770270548536', 0, NULL, NULL, NULL, 0),
           ('GgvpsGv-3ggXe9y5ATI8e', 'Archive old machine after verification', '', 'inbox', 'low', NULL, NULL, 'default', 'default', NULL, '1770270548536', '1770270548536', 0, NULL, NULL, NULL, 0),
-          ('vs-himiway-c1-movcan-v30', 'Review VS Page: Himiway C1 vs Movcan V30 Pro Max', 'https://wetried.it/?p=35311 - Draft comparison page awaiting review. Check content accuracy and affiliate links.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-himiway-c1-rad-power', 'Review VS Page: Himiway C1 vs Rad Power', 'https://wetried.it/?p=35312 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-himiway-c1-aventon', 'Review VS Page: Himiway C1 vs Aventon', 'https://wetried.it/?p=35313 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-himiway-c1-haoqi', 'Review VS Page: Himiway C1 vs HAOQI Cheetah', 'https://wetried.it/?p=35314 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-movcan-rad-power', 'Review VS Page: Movcan vs Rad Power', 'https://wetried.it/?p=35315 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-movcan-aventon', 'Review VS Page: Movcan vs Aventon', 'https://wetried.it/?p=35316 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-movcan-haoqi', 'Review VS Page: Movcan vs HAOQI Cheetah', 'https://wetried.it/?p=35317 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-rad-aventon', 'Review VS Page: Rad Power vs Aventon', 'https://wetried.it/?p=35318 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-rad-haoqi', 'Review VS Page: Rad Power vs HAOQI Cheetah', 'https://wetried.it/?p=35319 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-aventon-haoqi', 'Review VS Page: Aventon vs HAOQI Cheetah', 'https://wetried.it/?p=35320 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-wolf-amberjack', 'Review VS Page: Wolf & Shepherd vs Amberjack', 'https://wetried.it/?p=35324 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-wolf-kizik', 'Review VS Page: Wolf & Shepherd vs Kizik', 'https://wetried.it/?p=35325 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-wolf-heydude', 'Review VS Page: Wolf & Shepherd vs Hey Dude', 'https://wetried.it/?p=35326 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-amberjack-kizik', 'Review VS Page: Amberjack vs Kizik', 'https://wetried.it/?p=35327 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-amberjack-heydude', 'Review VS Page: Amberjack vs Hey Dude', 'https://wetried.it/?p=35328 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-kizik-heydude', 'Review VS Page: Kizik vs Hey Dude', 'https://wetried.it/?p=35329 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
-          ('vs-public-rec-revtown', 'Review VS Page: Public Rec vs Revtown', 'https://wetried.it/?p=35330 - Draft comparison page awaiting review.', 'in-review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0);
+          ('vs-himiway-c1-movcan-v30', 'Review VS Page: Himiway C1 vs Movcan V30 Pro Max', 'https://wetried.it/?p=35311 - Draft comparison page awaiting review. Check content accuracy and affiliate links.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-himiway-c1-rad-power', 'Review VS Page: Himiway C1 vs Rad Power', 'https://wetried.it/?p=35312 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-himiway-c1-aventon', 'Review VS Page: Himiway C1 vs Aventon', 'https://wetried.it/?p=35313 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-himiway-c1-haoqi', 'Review VS Page: Himiway C1 vs HAOQI Cheetah', 'https://wetried.it/?p=35314 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-movcan-rad-power', 'Review VS Page: Movcan vs Rad Power', 'https://wetried.it/?p=35315 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-movcan-aventon', 'Review VS Page: Movcan vs Aventon', 'https://wetried.it/?p=35316 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-movcan-haoqi', 'Review VS Page: Movcan vs HAOQI Cheetah', 'https://wetried.it/?p=35317 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-rad-aventon', 'Review VS Page: Rad Power vs Aventon', 'https://wetried.it/?p=35318 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-rad-haoqi', 'Review VS Page: Rad Power vs HAOQI Cheetah', 'https://wetried.it/?p=35319 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-aventon-haoqi', 'Review VS Page: Aventon vs HAOQI Cheetah', 'https://wetried.it/?p=35320 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-wolf-amberjack', 'Review VS Page: Wolf & Shepherd vs Amberjack', 'https://wetried.it/?p=35324 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-wolf-kizik', 'Review VS Page: Wolf & Shepherd vs Kizik', 'https://wetried.it/?p=35325 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-wolf-heydude', 'Review VS Page: Wolf & Shepherd vs Hey Dude', 'https://wetried.it/?p=35326 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-amberjack-kizik', 'Review VS Page: Amberjack vs Kizik', 'https://wetried.it/?p=35327 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-amberjack-heydude', 'Review VS Page: Amberjack vs Hey Dude', 'https://wetried.it/?p=35328 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-kizik-heydude', 'Review VS Page: Kizik vs Hey Dude', 'https://wetried.it/?p=35329 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0),
+          ('vs-public-rec-revtown', 'Review VS Page: Public Rec vs Revtown', 'https://wetried.it/?p=35330 - Draft comparison page awaiting review.', 'review', 'normal', NULL, NULL, 'default', 'default', NULL, '1770352783000', '1770352783000', 0, NULL, NULL, NULL, 0);
         `);
 
-        console.log('[Migration 008] ✓ Imported 113 tasks successfully');
+        console.log('[Migration 008.5] ✓ Imported 113 tasks successfully');
       } catch (err: any) {
-        console.error('[Migration 008] Failed:', err?.message || String(err));
+        console.error('[Migration 008.5] Failed:', err?.message || String(err));
         throw err;
       }
     }
-  },
-  {
+  },  {
     id: '007',
     name: 'add_someday_status_and_snooze_fields',
     up: (db) => {
