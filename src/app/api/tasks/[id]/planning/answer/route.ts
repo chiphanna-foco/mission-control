@@ -1,31 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getOpenClawClient } from '@/lib/openclaw/client';
 
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
 const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
 
-// Helper to call the OpenClaw HTTP API
-async function callOpenClawHTTP(sessionKey: string, message: string): Promise<string> {
-  const httpUrl = GATEWAY_URL.replace(/^ws/, 'http');
-  const response = await fetch(`${httpUrl}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GATEWAY_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'anthropic/claude-haiku-4-5',
-      messages: [{ role: 'user', content: message }],
-      max_tokens: 1024,
-      'x-session-key': sessionKey,
-    }),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenClaw HTTP API error ${response.status}: ${text}`);
+// Helper to call OpenClaw with timeout
+async function callOpenClawWithTimeout(
+  sessionKey: string,
+  message: string,
+  timeoutMs: number = 15000
+): Promise<string> {
+  const client = getOpenClawClient();
+  if (!client.isConnected()) {
+    await client.connect();
   }
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+
+  // Create a timeout promise
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`OpenClaw request timeout after ${timeoutMs}ms`)), timeoutMs);
+  });
+
+  try {
+    // Send the message using sessions.send
+    await Promise.race([
+      client.call('sessions.send', {
+        session_id: sessionKey,
+        content: message,
+      }),
+      timeoutPromise,
+    ]);
+
+    // Poll for response with timeout
+    const pollStartTime = Date.now();
+    const pollTimeoutMs = timeoutMs - 1000;
+    
+    while (Date.now() - pollStartTime < pollTimeoutMs) {
+      try {
+        const result = await client.call<unknown[]>('sessions.history', {
+          session_id: sessionKey,
+        });
+
+        const msgArray = Array.isArray(result) ? result : (result as any)?.messages || [];
+        const latestAssistant = [...msgArray].reverse().find((m: any) => m.role === 'assistant');
+
+        if (latestAssistant && latestAssistant.content) {
+          // Extract text from content (could be string or array)
+          if (typeof latestAssistant.content === 'string') {
+            return latestAssistant.content;
+          } else if (Array.isArray(latestAssistant.content)) {
+            const textParts = latestAssistant.content
+              .filter((c: any) => c.type === 'text' && c.text)
+              .map((c: any) => c.text)
+              .join('\n');
+            if (textParts) return textParts;
+          }
+        }
+      } catch (pollErr) {
+        console.error('[Planning Answer] Error polling:', pollErr);
+      }
+
+      // Wait before next poll
+      await new Promise(r => setTimeout(r, 500));
+    }
+
+    throw new Error('Timeout waiting for OpenClaw response');
+  } catch (err) {
+    console.error('[Planning Answer] OpenClaw call failed:', err instanceof Error ? err.message : String(err));
+    throw err;
+  }
 }
 
 // Helper to extract JSON from a response (handles markdown code blocks)
@@ -125,18 +168,12 @@ If planning is complete, respond with ONLY this JSON (no markdown, no code block
       UPDATE tasks SET planning_messages = ? WHERE id = ?
     `).run(JSON.stringify(messages), taskId);
 
-    // Send the answer prompt to the planning session via HTTP API with a timeout
-    // We use Promise.race to handle potential hangs
+    // Send the answer prompt to the planning session with timeout
     let response: string | null = null;
     try {
-      const timeoutPromise = new Promise<string>((_, reject) => 
-        setTimeout(() => reject(new Error('OpenClaw timeout after 30s')), 30000)
-      );
-      
-      const responsePromise = callOpenClawHTTP(task.planning_session_key!, answerPrompt);
-      response = await Promise.race([responsePromise, timeoutPromise]);
+      response = await callOpenClawWithTimeout(task.planning_session_key!, answerPrompt, 12000);
     } catch (err) {
-      console.error('[Planning] HTTP API error (will retry via GET polling):', err);
+      console.error('[Planning Answer] OpenClaw call failed (will retry via GET polling):', err instanceof Error ? err.message : String(err));
       // Return immediately; let the frontend poll for the response
       return NextResponse.json({
         complete: false,

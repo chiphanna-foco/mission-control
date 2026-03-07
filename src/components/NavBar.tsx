@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Lightbulb, Grid2X2, Settings } from 'lucide-react';
+import { getDeployBadge } from '@/lib/build-info';
 
 export default function NavBar() {
   const pathname = usePathname();
+  const deployBadge = getDeployBadge();
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
 
@@ -16,7 +18,12 @@ export default function NavBar() {
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 font-bold text-lg">
               <span className="text-2xl">🦞</span>
-              <span>Mission Control</span>
+              <div className="flex items-baseline gap-2">
+                <span>Mission Control</span>
+                <span className="text-xs text-mc-text-secondary/60 bg-mc-bg/50 px-2 py-1 rounded font-mono">
+                  {deployBadge}
+                </span>
+              </div>
             </Link>
 
             <div className="flex items-center gap-1">

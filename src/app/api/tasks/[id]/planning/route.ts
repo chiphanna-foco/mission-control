@@ -6,31 +6,124 @@ import { getOpenClawClient } from '@/lib/openclaw/client';
 // Planning session prefix for OpenClaw (must match agent:main: format)
 const PLANNING_SESSION_PREFIX = 'agent:main:planning:';
 
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
 const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
 
-// Helper to call the OpenClaw HTTP API (avoids operator.write scope requirement)
-async function callOpenClawHTTP(sessionKey: string, message: string): Promise<string> {
-  const httpUrl = GATEWAY_URL.replace(/^ws/, 'http');
-  const response = await fetch(`${httpUrl}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GATEWAY_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'anthropic/claude-haiku-4-5',
-      messages: [{ role: 'user', content: message }],
-      max_tokens: 4096,
-      'x-session-key': sessionKey,
-    }),
-  });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenClaw HTTP API error ${response.status}: ${text}`);
+// Helper to call OpenClaw with timeout
+async function callOpenClawWithTimeout(
+  sessionKey: string,
+  message: string,
+  timeoutMs: number = 15000
+): Promise<string> {
+  const startTime = Date.now();
+  console.log(`[Planning] [${new Date().toISOString()}] START: Calling OpenClaw with ${timeoutMs}ms timeout`);
+  
+  const client = getOpenClawClient();
+  
+  if (!client.isConnected()) {
+    console.log(`[Planning] [T+${Date.now() - startTime}ms] Checking connection...`);
+    try {
+      console.log(`[Planning] [T+${Date.now() - startTime}ms] Connecting to OpenClaw...`);
+      await client.connect();
+      console.log(`[Planning] [T+${Date.now() - startTime}ms] Connected successfully`);
+    } catch (connErr) {
+      console.error(`[Planning] [T+${Date.now() - startTime}ms] Connection failed:`, connErr);
+      throw connErr;
+    }
+  } else {
+    console.log(`[Planning] [T+${Date.now() - startTime}ms] Already connected`);
   }
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+
+  // Create a timeout promise
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    const timer = setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      console.error(`[Planning] [T+${elapsed}ms] TIMEOUT: Request exceeded ${timeoutMs}ms`);
+      reject(new Error(`OpenClaw request timeout after ${elapsed}ms (limit: ${timeoutMs}ms)`));
+    }, timeoutMs);
+    
+    // Log timeout setup
+    console.log(`[Planning] [T+${Date.now() - startTime}ms] Timeout safety net installed (${timeoutMs}ms)`);
+  });
+
+  try {
+    // Send the message using sessions.send
+    console.log(`[Planning] [T+${Date.now() - startTime}ms] Sending message to session: ${sessionKey}`);
+    const sendStart = Date.now();
+    
+    await Promise.race([
+      (async () => {
+        try {
+          const sendResult = await client.call('chat.send', {
+            sessionKey: sessionKey,
+            message: message,
+            idempotencyKey: `planning-${sessionKey}-${Date.now()}`
+          }, 8000); // 8 second timeout for chat.send
+          console.log(`[Planning] [T+${Date.now() - startTime}ms] chat.send returned after ${Date.now() - sendStart}ms:`, 
+            typeof sendResult === 'object' ? JSON.stringify(sendResult).slice(0, 100) : String(sendResult).slice(0, 100));
+          return sendResult;
+        } catch (sendErr) {
+          console.error(`[Planning] [T+${Date.now() - startTime}ms] chat.send threw:`, sendErr);
+          throw sendErr;
+        }
+      })(),
+      timeoutPromise,
+    ]);
+
+    // Poll for response with timeout
+    console.log(`[Planning] [T+${Date.now() - startTime}ms] Message sent, starting poll for response...`);
+    const pollStartTime = Date.now();
+    const pollTimeoutMs = timeoutMs - 1000; // Reserve 1s for fallback
+    let pollCount = 0;
+    
+    while (Date.now() - pollStartTime < pollTimeoutMs) {
+      pollCount++;
+      try {
+        const historyStart = Date.now();
+        const result = await client.call<any>('chat.history', {
+          sessionKey: sessionKey,
+          limit: 100
+        }, 5000); // 5 second timeout for chat.history polling
+        const historyTime = Date.now() - historyStart;
+        
+        const messages = Array.isArray(result) ? result : (result as any)?.messages || [];
+        console.log(`[Planning] [T+${Date.now() - startTime}ms] Poll #${pollCount} (${historyTime}ms): Got ${messages.length} messages, result type: ${typeof result}`);
+        
+        // Result might be wrapped in { messages: [...] }
+        const messageList = Array.isArray(result) ? result : result?.messages || [];
+        const latestAssistant = [...messageList].reverse().find((m: any) => m.role === 'assistant');
+
+        if (latestAssistant && latestAssistant.content) {
+          console.log(`[Planning] [T+${Date.now() - startTime}ms] ✓ SUCCESS: Got response from OpenClaw after ${pollCount} polls`);
+          // Extract text from content (could be string or array)
+          if (typeof latestAssistant.content === 'string') {
+            return latestAssistant.content;
+          } else if (Array.isArray(latestAssistant.content)) {
+            const textParts = latestAssistant.content
+              .filter((c: any) => c.type === 'text' && c.text)
+              .map((c: any) => c.text)
+              .join('\n');
+            if (textParts) return textParts;
+          }
+        }
+      } catch (pollErr) {
+        console.error(`[Planning] [T+${Date.now() - startTime}ms] Poll #${pollCount} error:`, 
+          pollErr instanceof Error ? pollErr.message : String(pollErr));
+      }
+
+      // Wait before next poll
+      console.log(`[Planning] [T+${Date.now() - startTime}ms] Waiting 500ms before poll #${pollCount + 1}...`);
+      await new Promise(r => setTimeout(r, 500));
+    }
+
+    const elapsed = Date.now() - pollStartTime;
+    console.error(`[Planning] [T+${Date.now() - startTime}ms] TIMEOUT: Poll exhausted after ${elapsed}ms / ${pollTimeoutMs}ms`);
+    throw new Error(`Timeout waiting for OpenClaw response (${elapsed}ms after polling started, ${Date.now() - startTime}ms total)`);
+  } catch (err) {
+    const elapsed = Date.now() - startTime;
+    console.error(`[Planning] [T+${elapsed}ms] FAILED: ${err instanceof Error ? err.message : String(err)}`);
+    throw err;
+  }
 }
 
 // Helper to extract JSON from a response that might have markdown code blocks or surrounding text
@@ -66,23 +159,32 @@ function extractJSON(text: string): object | null {
   return null;
 }
 
-// Helper to get messages from OpenClaw API
-async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role: string; content: string }>> {
+// Helper to get messages from OpenClaw API with timeout
+async function getMessagesFromOpenClaw(sessionKey: string, timeoutMs: number = 5000): Promise<Array<{ role: string; content: string }>> {
   try {
     const client = getOpenClawClient();
     if (!client.isConnected()) {
       await client.connect();
     }
     
-    // Use chat.history API to get session messages
-    const result = await client.call<{ messages: Array<{ role: string; content: string | Array<{ type: string; text?: string }> }> }>('chat.history', {
-      sessionKey,
-      limit: 20,
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('getMessagesFromOpenClaw timeout')), timeoutMs);
     });
+
+    // Use chat.history API to get session messages
+    const result = await Promise.race([
+      client.call<any>('chat.history', {
+        sessionKey: sessionKey,
+        limit: 100
+      }, 4000), // 4 second timeout for this call
+      timeoutPromise,
+    ]);
     
     const messages: Array<{ role: string; content: string }> = [];
+    const msgArray = Array.isArray(result) ? result : (result as any)?.messages || [];
     
-    for (const msg of result.messages || []) {
+    for (const msg of msgArray) {
       if (msg.role === 'assistant') {
         let text = '';
         
@@ -92,9 +194,12 @@ async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role
         } else if (Array.isArray(msg.content)) {
           // Content is an array of content blocks - concatenate all text blocks
           text = msg.content
-            .filter((c) => c.type === 'text' && c.text)
-            .map((c) => c.text!)
+            .filter((c: any) => c.type === 'text' && c.text)
+            .map((c: any) => c.text!)
             .join('\n');
+        } else if (msg.content && typeof msg.content === 'object') {
+          // Content might be an object with text property
+          text = msg.content.text || '';
         }
         
         // Only include non-empty messages (skip partial/streaming responses)
@@ -107,10 +212,10 @@ async function getMessagesFromOpenClaw(sessionKey: string): Promise<Array<{ role
       }
     }
     
-    console.log('[Planning] Found', messages.length, 'assistant messages via API');
+    console.log('[Planning GET] Found', messages.length, 'assistant messages via API');
     return messages;
   } catch (err) {
-    console.error('[Planning] Failed to get messages from OpenClaw:', err);
+    console.error('[Planning GET] Failed to get messages from OpenClaw:', err instanceof Error ? err.message : String(err));
     return [];
   }
 }
@@ -261,16 +366,21 @@ Respond with ONLY valid JSON (no markdown code blocks, no triple backticks). Out
       WHERE id = ?
     `).run(sessionKey, JSON.stringify(messages), taskId);
 
-    // Call OpenClaw HTTP API (bypasses operator.write scope requirement)
+    // Call OpenClaw with timeout
     let response: string | null = null;
+    let error: Error | null = null;
+    
     try {
-      response = await callOpenClawHTTP(sessionKey, planningPrompt);
-      console.log('[Planning] Got HTTP API response:', response?.slice(0, 100));
+      console.log('[Planning POST] Starting OpenClaw call for task:', taskId);
+      response = await callOpenClawWithTimeout(sessionKey, planningPrompt, 12000);
+      console.log('[Planning POST] Got response:', response?.slice(0, 150));
     } catch (err) {
-      console.error('[Planning] HTTP API call failed:', err);
+      error = err instanceof Error ? err : new Error(String(err));
+      console.error('[Planning POST] OpenClaw call failed:', error.message);
     }
 
-    if (response) {
+    // If we got a response, save it and try to parse
+    if (response && response.trim()) {
       messages.push({ role: 'assistant', content: response, timestamp: Date.now() });
       
       getDb().prepare(`
@@ -279,6 +389,7 @@ Respond with ONLY valid JSON (no markdown code blocks, no triple backticks). Out
 
       const parsed = extractJSON(response);
       if (parsed && 'question' in parsed) {
+        console.log('[Planning POST] Successfully parsed question');
         return NextResponse.json({
           success: true,
           sessionKey,
@@ -286,6 +397,7 @@ Respond with ONLY valid JSON (no markdown code blocks, no triple backticks). Out
           messages,
         });
       } else {
+        console.log('[Planning POST] Got response but could not parse as question');
         return NextResponse.json({
           success: true,
           sessionKey,
@@ -295,11 +407,18 @@ Respond with ONLY valid JSON (no markdown code blocks, no triple backticks). Out
       }
     }
 
+    // If timeout or error, return waiting status
+    // Frontend will poll GET endpoint to check for updates
+    console.log('[Planning POST] Returning waiting status for polling');
+    getDb().prepare(`
+      UPDATE tasks SET planning_messages = ? WHERE id = ?
+    `).run(JSON.stringify(messages), taskId);
+
     return NextResponse.json({
       success: true,
       sessionKey,
       messages,
-      note: 'Planning started, waiting for response. Poll GET endpoint for updates.',
+      note: error ? `Started planning (${error.message}). Waiting for response...` : 'Planning started, waiting for response. Poll GET endpoint for updates.',
     });
   } catch (error) {
     console.error('Failed to start planning:', error);

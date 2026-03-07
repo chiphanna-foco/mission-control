@@ -345,14 +345,24 @@ export class OpenClawClient extends EventEmitter {
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
 
-      setTimeout(() => {
+      const timeoutHandle = setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
-          reject(new Error(`Request timeout: ${method}`));
+          const elapsed = Date.now();
+          console.error(`[OpenClaw] [${new Date().toISOString()}] Request timeout after ${timeoutMs}ms: ${method}`);
+          reject(new Error(`Request timeout after ${timeoutMs}ms: ${method}`));
         }
       }, timeoutMs);
 
-      this.ws!.send(JSON.stringify(message));
+      try {
+        console.log(`[OpenClaw] [${new Date().toISOString()}] Sending ${method} (timeout: ${timeoutMs}ms)`);
+        this.ws!.send(JSON.stringify(message));
+      } catch (err) {
+        clearTimeout(timeoutHandle);
+        this.pendingRequests.delete(id);
+        console.error(`[OpenClaw] Failed to send ${method}:`, err);
+        reject(err);
+      }
     });
   }
 

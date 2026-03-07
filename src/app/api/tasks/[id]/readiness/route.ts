@@ -8,8 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { broadcast } from '@/lib/events';
+import { getOpenClawClient } from '@/lib/openclaw/client';
 
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
 const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
 
 interface ReadinessGap {
@@ -123,30 +124,58 @@ RULES:
 - Always include "Other" option`;
 
   try {
-    const httpUrl = GATEWAY_URL.replace(/^ws/, 'http');
-    const response = await fetch(`${httpUrl}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GATEWAY_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-sonnet-4-20250514',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error('[Readiness] LLM call failed:', response.status);
-      return null;
+    const client = getOpenClawClient();
+    if (!client.isConnected()) {
+      await client.connect();
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    const sessionKey = `agent:main:readiness:${Date.now()}`;
+    
+    // Send the prompt with timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('OpenClaw timeout')), 15000);
+    });
+
+    await Promise.race([
+      client.call('sessions.send', {
+        session_id: sessionKey,
+        content: prompt,
+      }),
+      timeoutPromise,
+    ]);
+
+    // Poll for response
+    const pollStartTime = Date.now();
+    while (Date.now() - pollStartTime < 14000) {
+      try {
+        const result = await client.call<unknown[]>('sessions.history', {
+          session_id: sessionKey,
+        });
+
+        const msgArray = Array.isArray(result) ? result : (result as any)?.messages || [];
+        const latestAssistant = [...msgArray].reverse().find((m: any) => m.role === 'assistant');
+
+        if (latestAssistant && latestAssistant.content) {
+          let text = '';
+          if (typeof latestAssistant.content === 'string') {
+            text = latestAssistant.content;
+          } else if (Array.isArray(latestAssistant.content)) {
+            text = latestAssistant.content
+              .filter((c: any) => c.type === 'text' && c.text)
+              .map((c: any) => c.text)
+              .join('\n');
+          }
+          
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
+        }
+      } catch (pollErr) {
+        console.error('[Readiness] Error polling:', pollErr);
+      }
+
+      await new Promise(r => setTimeout(r, 500));
     }
   } catch (err) {
     console.error('[Readiness] Failed to generate planning kickoff:', err);

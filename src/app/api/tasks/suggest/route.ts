@@ -173,7 +173,8 @@ export async function POST() {
   try {
     const tasks = queryAll<TaskRow>(
       `SELECT t.id, t.title, t.description, t.status, t.priority, t.assigned_agent_id, t.due_date,
-        t.planning_complete, t.planning_spec, t.blocked_on, t.blocked_reason, t.life_bucket, t.domain, t.effort_bucket,
+        t.planning_complete, t.planning_spec, t.blocked_on, t.blocked_reason, 
+        NULL as life_bucket, NULL as domain, NULL as effort_bucket,
         (SELECT MAX(a.created_at) FROM task_activities a WHERE a.task_id = t.id) as last_activity_at,
         (SELECT COUNT(*) FROM task_deliverables d WHERE d.task_id = t.id) as deliverable_count,
         (SELECT COUNT(*) FROM task_deliverables d WHERE d.task_id = t.id AND d.status = 'done') as deliverable_done_count
@@ -198,7 +199,8 @@ export async function GET(request: NextRequest) {
   try {
     const tasks = queryAll<TaskRow>(
       `SELECT t.id, t.title, t.description, t.status, t.priority, t.assigned_agent_id, t.due_date,
-        t.planning_complete, t.planning_spec, t.blocked_on, t.blocked_reason, t.life_bucket, t.domain, t.effort_bucket,
+        t.planning_complete, t.planning_spec, t.blocked_on, t.blocked_reason,
+        NULL as life_bucket, NULL as domain, NULL as effort_bucket,
         (SELECT MAX(a.created_at) FROM task_activities a WHERE a.task_id = t.id) as last_activity_at,
         (SELECT COUNT(*) FROM task_deliverables d WHERE d.task_id = t.id) as deliverable_count,
         (SELECT COUNT(*) FROM task_deliverables d WHERE d.task_id = t.id AND d.status = 'done') as deliverable_done_count
