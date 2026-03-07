@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "bash scripts/set-build-info.sh && next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "db:seed": "tsx src/lib/db/seed.ts",
