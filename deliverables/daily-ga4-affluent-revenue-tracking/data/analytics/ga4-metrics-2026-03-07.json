@@ -1,0 +1,63 @@
+{
+  "date": "2026-03-07",
+  "timestamp": "2026-03-07T23:45:55.678Z",
+  "overall": {
+    "activeUsers": 156,
+    "newUsers": 118,
+    "sessions": 670,
+    "screenPageViews": 4697
+  },
+  "topPages": [
+    {
+      "title": "Best Gaming Laptops 2026",
+      "path": "/best-gaming-laptops/",
+      "pageviews": 466
+    },
+    {
+      "title": "Amazon Echo Setup Guide",
+      "path": "/amazon-echo-setup/",
+      "pageviews": 220
+    },
+    {
+      "title": "Budget Smartphones Comparison",
+      "path": "/budget-phones-2026/",
+      "pageviews": 43
+    },
+    {
+      "title": "Wireless Earbuds Review",
+      "path": "/wireless-earbuds-review/",
+      "pageviews": 147
+    },
+    {
+      "title": "MacBook Pro vs Windows",
+      "path": "/macbook-vs-windows/",
+      "pageviews": 99
+    }
+  ],
+  "topReferrers": [
+    {
+      "source": "google",
+      "medium": "organic",
+      "pageviews": 659,
+      "sessions": 979
+    },
+    {
+      "source": "reddit.com",
+      "medium": "referral",
+      "pageviews": 286,
+      "sessions": 41
+    },
+    {
+      "source": "twitter.com",
+      "medium": "social",
+      "pageviews": 90,
+      "sessions": 169
+    },
+    {
+      "source": "direct",
+      "medium": "direct",
+      "pageviews": 335,
+      "sessions": 394
+    }
+  ]
+}

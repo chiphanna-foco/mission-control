@@ -1,0 +1,275 @@
+{
+  "timestamp": "2024-03-07T16:30:00.000Z",
+  "emailsProcessed": 12,
+  "actionItems": 5,
+  "urgent": 2,
+  "actionCount": {
+    "todo": 3,
+    "decision": 1,
+    "waiting": 1
+  },
+  "byDomain": {
+    "turbotenant": [
+      {
+        "id": "msg-001-turbotenant-urgent",
+        "from": "ceo@turbotenant.com",
+        "subject": "Q1 Financials Review - URGENT",
+        "classification": {
+          "domain": "turbotenant",
+          "label": "TurboTenant",
+          "priority": "high",
+          "context": "CEO/CoS context, meetings, decisions",
+          "confidence": 0.98
+        },
+        "actions": [
+          {
+            "type": "decision",
+            "text": "approve Q1 financial report",
+            "confidence": 0.85
+          }
+        ],
+        "urgency": {
+          "level": 4,
+          "levelName": "HIGH",
+          "isUrgent": true,
+          "keyword": "URGENT",
+          "reasons": [
+            "Contains \"URGENT\""
+          ]
+        }
+      },
+      {
+        "id": "msg-002-turbotenant-meeting",
+        "from": "team@turbotenant.com",
+        "subject": "Team Meeting Rescheduled to 2 PM Today",
+        "classification": {
+          "domain": "turbotenant",
+          "label": "TurboTenant",
+          "priority": "high",
+          "context": "CEO/CoS context, meetings, decisions",
+          "confidence": 0.92
+        },
+        "actions": [],
+        "urgency": {
+          "level": 3,
+          "levelName": "MEDIUM",
+          "isUrgent": true,
+          "reasons": [
+            "deadline today"
+          ]
+        }
+      }
+    ],
+    "wetried": [
+      {
+        "id": "msg-003-wetried-partnership",
+        "from": "partner@wetried.it",
+        "subject": "Partnership Proposal - ROI 30%",
+        "classification": {
+          "domain": "wetried",
+          "label": "WeTried.it",
+          "priority": "high",
+          "context": "Business, revenue, partnerships",
+          "confidence": 0.88
+        },
+        "actions": [
+          {
+            "type": "decision",
+            "text": "can you decide on partnership",
+            "confidence": 0.80
+          }
+        ],
+        "urgency": {
+          "level": 3,
+          "levelName": "MEDIUM",
+          "isUrgent": true,
+          "reasons": [
+            "Contains \"important\""
+          ]
+        }
+      },
+      {
+        "id": "msg-004-wetried-revenue",
+        "from": "finance@wetried.it",
+        "subject": "February Revenue Report - $125K",
+        "classification": {
+          "domain": "wetried",
+          "label": "WeTried.it",
+          "priority": "high",
+          "context": "Business, revenue, partnerships",
+          "confidence": 0.85
+        },
+        "actions": [
+          {
+            "type": "todo",
+            "text": "review revenue report",
+            "confidence": 0.75
+          }
+        ],
+        "urgency": {
+          "level": 2,
+          "levelName": "LOW",
+          "isUrgent": false,
+          "reasons": []
+        }
+      }
+    ],
+    "gamebuzz": [
+      {
+        "id": "msg-005-gamebuzz-twitter",
+        "from": "marketing@gamebuzzapp.com",
+        "subject": "Twitter Campaign Launch - 50K Impressions",
+        "classification": {
+          "domain": "gamebuzz",
+          "label": "GameBuzz",
+          "priority": "medium",
+          "context": "Twitter growth, partnerships",
+          "confidence": 0.90
+        },
+        "actions": [],
+        "urgency": {
+          "level": 2,
+          "levelName": "LOW",
+          "isUrgent": false,
+          "reasons": []
+        }
+      },
+      {
+        "id": "msg-006-gamebuzz-partnership",
+        "from": "bd@gamebuzzapp.com",
+        "subject": "Partnership Opportunity - Influencer Collab",
+        "classification": {
+          "domain": "gamebuzz",
+          "label": "GameBuzz",
+          "priority": "medium",
+          "context": "Twitter growth, partnerships",
+          "confidence": 0.87
+        },
+        "actions": [
+          {
+            "type": "decision",
+            "text": "feedback needed on partnership",
+            "confidence": 0.82
+          }
+        ],
+        "urgency": {
+          "level": 2,
+          "levelName": "LOW",
+          "isUrgent": false,
+          "reasons": []
+        }
+      }
+    ],
+    "kids_family": [
+      {
+        "id": "msg-007-kids-school",
+        "from": "school@rockymountainprep.edu",
+        "subject": "Parent-Teacher Conference Reminder - Tomorrow 3 PM",
+        "classification": {
+          "domain": "kids_family",
+          "label": "Kids/Family",
+          "priority": "medium",
+          "context": "School, health, activities",
+          "confidence": 0.94
+        },
+        "actions": [],
+        "urgency": {
+          "level": 4,
+          "levelName": "HIGH",
+          "isUrgent": true,
+          "reasons": [
+            "deadline tomorrow"
+          ]
+        }
+      },
+      {
+        "id": "msg-008-kids-activity",
+        "from": "sports@soccercamps.org",
+        "subject": "Soccer Camp Registration Closes Today",
+        "classification": {
+          "domain": "kids_family",
+          "label": "Kids/Family",
+          "priority": "medium",
+          "context": "School, health, activities",
+          "confidence": 0.89
+        },
+        "actions": [
+          {
+            "type": "todo",
+            "text": "register for soccer camp",
+            "confidence": 0.80
+          }
+        ],
+        "urgency": {
+          "level": 4,
+          "levelName": "HIGH",
+          "isUrgent": true,
+          "reasons": [
+            "deadline today"
+          ]
+        }
+      }
+    ],
+    "personal_health": [
+      {
+        "id": "msg-009-health-appointment",
+        "from": "appointments@denvercardiology.com",
+        "subject": "Appointment Confirmation - Dr. Smith March 10",
+        "classification": {
+          "domain": "personal_health",
+          "label": "Personal Health",
+          "priority": "medium",
+          "context": "Fitness, doctor, wellness",
+          "confidence": 0.91
+        },
+        "actions": [],
+        "urgency": {
+          "level": 1,
+          "levelName": "MINIMAL",
+          "isUrgent": false,
+          "reasons": []
+        }
+      },
+      {
+        "id": "msg-010-health-fitness",
+        "from": "coach@fitnesselite.com",
+        "subject": "Your Weekly Fitness Summary",
+        "classification": {
+          "domain": "personal_health",
+          "label": "Personal Health",
+          "priority": "medium",
+          "context": "Fitness, doctor, wellness",
+          "confidence": 0.86
+        },
+        "actions": [],
+        "urgency": {
+          "level": 1,
+          "levelName": "MINIMAL",
+          "isUrgent": false,
+          "reasons": []
+        }
+      }
+    ],
+    "uncategorized": [
+      {
+        "id": "msg-011-uncategorized",
+        "from": "newsletter@techtrends.io",
+        "subject": "TechTrends Weekly Newsletter",
+        "classification": {
+          "domain": "uncategorized",
+          "label": "Uncategorized",
+          "priority": "low",
+          "context": "Other",
+          "confidence": 0.0
+        },
+        "actions": [],
+        "urgency": {
+          "level": 1,
+          "levelName": "MINIMAL",
+          "isUrgent": false,
+          "reasons": []
+        }
+      }
+    ]
+  }
+}

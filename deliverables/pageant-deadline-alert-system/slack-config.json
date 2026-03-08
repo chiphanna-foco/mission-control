@@ -1,0 +1,8 @@
+{
+  "comment": "Slack webhook URLs for pageant deadline alerts. Replace with actual webhooks from Slack app.",
+  "channel_webhook": null,
+  "channel_name": "#pageant-alerts",
+  "dm_webhook": null,
+  "dm_target": "@scarlett",
+  "notes": "To set up webhooks: 1) Create Slack app in workspace 2) Enable Incoming Webhooks 3) Create webhook for #pageant-alerts channel 4) Create webhook for DM with Scarlett"
+}

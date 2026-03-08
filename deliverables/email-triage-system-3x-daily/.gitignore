@@ -1,0 +1,37 @@
+# Environment & Credentials
+.env.local
+.env
+service-account.json
+*.pem
+*.key
+*.p12
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+dist/
+*.js.map
+*.d.ts
+
+# Runtime
+logs/
+results/
+archive/
+*.db
+triage-state.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temp
+tmp/
+temp/
+debug.log

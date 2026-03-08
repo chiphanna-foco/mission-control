@@ -1,0 +1,13 @@
+[Unit]
+Description=Slack Approval Bot - Sync Timer
+Requires=slack-approval-bot.service
+After=network.target
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=5min
+Unit=slack-approval-bot.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

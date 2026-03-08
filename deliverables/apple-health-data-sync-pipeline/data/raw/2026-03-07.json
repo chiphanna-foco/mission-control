@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-03-07T23:48:09Z",
+  "date": "2026-03-07",
+  "steps": 0,
+  "heart_rate": {
+    "average": 0,
+    "min": 0,
+    "max": 0
+  },
+  "active_calories": 0,
+  "sleep": {
+    "total_minutes": 0,
+    "quality_score": 0,
+    "sleep_periods": 0
+  },
+  "workouts": [],
+  "status": "pending_real_data"
+}

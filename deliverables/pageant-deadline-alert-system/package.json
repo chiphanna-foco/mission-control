@@ -1,0 +1,24 @@
+{
+  "name": "pageant-deadline-alert-system",
+  "version": "1.0.0",
+  "description": "Automated pageant deadline alerts with Slack integration and dashboard widget",
+  "type": "module",
+  "main": "alert-engine.mjs",
+  "scripts": {
+    "check": "node alert-engine.mjs --check",
+    "list": "node alert-engine.mjs --list",
+    "status": "node alert-engine.mjs --status",
+    "test": "echo 'Run: npm run check' && npm run list && npm run status"
+  },
+  "keywords": [
+    "pageant",
+    "deadlines",
+    "alerts",
+    "slack"
+  ],
+  "author": "Scarlett Agent",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

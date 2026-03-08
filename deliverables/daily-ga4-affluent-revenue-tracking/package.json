@@ -1,0 +1,31 @@
+{
+  "name": "daily-ga4-affluent-revenue-tracking",
+  "version": "1.0.0",
+  "description": "Daily automation: GA4 metrics + Affluent affiliate revenue tracking",
+  "type": "module",
+  "main": "scripts/daily-report.mjs",
+  "scripts": {
+    "ga4": "node scripts/ga4-pull.mjs",
+    "affluent": "node scripts/affluent-parser.mjs",
+    "report": "node scripts/daily-report.mjs",
+    "report:yesterday": "node scripts/daily-report.mjs --date=$(date -d yesterday +%Y-%m-%d)",
+    "test": "node scripts/daily-report.mjs"
+  },
+  "keywords": [
+    "ga4",
+    "google-analytics",
+    "affiliate",
+    "revenue",
+    "automation",
+    "wetried"
+  ],
+  "author": "WeTried.it Analytics Team",
+  "license": "MIT",
+  "dependencies": {
+    "googleapis": "^118.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

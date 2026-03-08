@@ -1,0 +1,26 @@
+{
+  "name": "twitter-bookmark-nightly-ingestion",
+  "version": "1.0.0",
+  "description": "Nightly ingestion, categorization, and search index for Chip's X/Twitter bookmarks",
+  "main": "src/index.js",
+  "scripts": {
+    "ingest": "node src/ingest.js",
+    "categorize": "node src/categorize.js",
+    "extract-insights": "node src/extract-insights.js",
+    "search": "node src/search.js",
+    "setup": "node src/setup.js",
+    "test": "node src/test.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.6",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Life Agent (lf-001)",
+  "license": "PRIVATE"
+}

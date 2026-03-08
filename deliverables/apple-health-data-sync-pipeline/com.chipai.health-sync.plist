@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.chipai.health-sync</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/chipai/Documents/Shared/projects/apple-health-data-sync-pipeline/sync-health-data.sh</string>
+    </array>
+    
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    
+    <key>StandardOutPath</key>
+    <string>/Users/chipai/Documents/Shared/projects/apple-health-data-sync-pipeline/data/logs/stdout.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/chipai/Documents/Shared/projects/apple-health-data-sync-pipeline/data/logs/stderr.log</string>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <false/>
+    
+    <key>Nice</key>
+    <integer>10</integer>
+</dict>
+</plist>

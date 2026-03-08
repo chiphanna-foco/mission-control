@@ -1,0 +1,21 @@
+{
+  "name": "ai-innovation-pilot-tracker",
+  "version": "1.0.0",
+  "description": "Track AI tool experiments at TT - what's tested, who's piloting, results, ROI, case studies",
+  "type": "module",
+  "main": "src/engine.js",
+  "scripts": {
+    "start": "node src/cli.js",
+    "setup": "node src/setup.js",
+    "pilots": "node src/cli.js list",
+    "status": "node src/cli.js status",
+    "report": "node src/cli.js report",
+    "case-studies": "node src/cli.js case-studies"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0",
+    "date-fns": "^2.30.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.0.0"
+  }
+}

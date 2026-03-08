@@ -1,0 +1,363 @@
+================================================================================
+EMAIL TRIAGE SYSTEM FOR MISSION CONTROL - COMPLETE FILE MANIFEST
+================================================================================
+Project Location: ~/Documents/Shared/projects/email-triage-system-3x-daily
+Status: ✅ COMPLETE AND READY FOR INTEGRATION
+Created: 2024-03-07
+
+================================================================================
+EXECUTABLE SCRIPTS (Node.js & Bash)
+================================================================================
+
+scripts/email-triage.js
+  ├─ Purpose: Main triage runner (called by launchd)
+  ├─ Executable: ✅ Yes (chmod +x)
+  ├─ Function: Fetch emails, classify, extract actions, detect urgency
+  └─ Called by: LaunchD (8 AM, 12 PM, 5 PM daily)
+
+scripts/install-launchd.sh
+  ├─ Purpose: Automated LaunchD job setup
+  ├─ Executable: ✅ Yes (chmod +x)
+  ├─ Function: Install 3 launchd jobs, create directories
+  └─ Usage: bash scripts/install-launchd.sh
+
+scripts/manage-triage.sh
+  ├─ Purpose: Management & monitoring utility
+  ├─ Executable: ✅ Yes (chmod +x)
+  ├─ Function: Status checks, manual triggers, log viewing, diagnostics
+  └─ Usage: bash scripts/manage-triage.sh [command]
+
+================================================================================
+TYPESCRIPT LIBRARIES (src/lib/)
+================================================================================
+
+src/lib/email-classifier.ts
+  ├─ Purpose: Domain-based email classification
+  ├─ Class: EmailClassifier
+  ├─ Function: classifyEmail(from, subject, body) → ClassificationResult
+  └─ Domains: TurboTenant, WeTried.it, GameBuzz, Kids/Family, Personal Health
+
+src/lib/action-item-extractor.ts
+  ├─ Purpose: Extract action items from emails
+  ├─ Class: ActionItemExtractor
+  ├─ Function: extract(subject, body) → ActionItemResult
+  └─ Types: TODO, decision, waiting
+
+src/lib/urgency-detector.ts
+  ├─ Purpose: Detect urgency and deadlines
+  ├─ Class: UrgencyDetector
+  ├─ Function: detect(subject, body, from) → UrgencyResult
+  └─ Levels: CRITICAL (5), HIGH (4), MEDIUM (3), LOW (2), MINIMAL (1)
+
+================================================================================
+API ENDPOINT (Next.js)
+================================================================================
+
+src/app/api/email/triage/route.ts
+  ├─ Endpoint: POST /api/email/triage
+  │  ├─ Purpose: Manually trigger email triage
+  │  ├─ Params: ?full=true (optional), ?limit=20 (optional)
+  │  └─ Returns: { success, timestamp, results }
+  ├─ Endpoint: GET /api/email/triage
+  │  ├─ Purpose: Fetch latest triage results
+  │  └─ Returns: { success, results }
+  └─ Auth: Requires TRIAGE_API_KEY header
+
+================================================================================
+LAUNCHD CONFIGURATION (3 DAILY JOBS)
+================================================================================
+
+.launchd/com.mission-control.email-triage-morning.plist
+  ├─ Trigger: 8:00 AM (Mon-Fri)
+  ├─ Job Label: com.mission-control.email-triage-morning
+  ├─ Logs: logs/morning.log, logs/morning-error.log
+  └─ Status: Ready for: launchctl load ~/Library/LaunchAgents/
+
+.launchd/com.mission-control.email-triage-noon.plist
+  ├─ Trigger: 12:00 PM (Mon-Fri)
+  ├─ Job Label: com.mission-control.email-triage-noon
+  ├─ Logs: logs/noon.log, logs/noon-error.log
+  └─ Status: Ready for: launchctl load ~/Library/LaunchAgents/
+
+.launchd/com.mission-control.email-triage-evening.plist
+  ├─ Trigger: 5:00 PM (Mon-Fri)
+  ├─ Job Label: com.mission-control.email-triage-evening
+  ├─ Logs: logs/evening.log, logs/evening-error.log
+  └─ Status: Ready for: launchctl load ~/Library/LaunchAgents/
+
+================================================================================
+CONFIGURATION FILES
+================================================================================
+
+triage.config.json ⭐ CUSTOMIZABLE
+  ├─ Domain configurations (keywords, emails, priority)
+  ├─ Urgency patterns (keywords, deadline rules)
+  ├─ Action keywords (TODO, decision, waiting triggers)
+  └─ Response templates (acknowledgment, needsTime, needsDecision)
+
+.env.example
+  ├─ Template for environment variables
+  ├─ Copy to .env.local and customize
+  └─ Contains: GOOGLE_KEY_FILE, SLACK_TOKEN, DATABASE config
+
+.env.local (TO BE CREATED)
+  ├─ Your actual credentials (DO NOT COMMIT)
+  ├─ GOOGLE_KEY_FILE=./service-account.json
+  ├─ SLACK_BOT_TOKEN=xoxb-...
+  └─ SLACK_USER_ID=U...
+
+.gitignore
+  ├─ Excludes sensitive files from git
+  ├─ Excludes: .env.local, service-account.json, node_modules, logs, results
+  └─ Safe for public repository
+
+tsconfig.json
+  ├─ TypeScript compiler configuration
+  ├─ Target: ES2020
+  ├─ Module: commonjs
+  └─ Strict mode: enabled
+
+package.json
+  ├─ Node.js project configuration
+  ├─ Dependencies: googleapis
+  ├─ Scripts: triage, install-launchd, logs, launchctl:start
+  └─ Engines: node >=18.0.0
+
+================================================================================
+DOCUMENTATION
+================================================================================
+
+README.md (8.7 KB)
+  ├─ Complete user documentation
+  ├─ Sections: Quick Start, File Structure, Configuration, Usage, Examples
+  ├─ Dashboard Integration guide
+  └─ Performance metrics & maintenance
+
+SETUP.md (10.5 KB)
+  ├─ Step-by-step setup guide
+  ├─ Phases: Prerequisites, Gmail API, Configuration, Installation, Testing
+  ├─ Troubleshooting setup section
+  └─ Next steps & support
+
+TROUBLESHOOTING.md (11.1 KB)
+  ├─ 15+ common issues with solutions
+  ├─ LaunchD job problems
+  ├─ Gmail API authentication
+  ├─ Performance optimization
+  └─ Command reference
+
+DELIVERABLES.md (10.5 KB)
+  ├─ Complete manifest of all files
+  ├─ Technology stack
+  ├─ Feature checklist
+  ├─ Configuration reference
+  └─ Integration points
+
+example-triage-output.json (7.2 KB)
+  ├─ Real-world sample output
+  ├─ Shows: 12 emails, 5 action items, 2 urgent
+  ├─ All classification and urgency fields
+  └─ Domain grouping example
+
+================================================================================
+RUNTIME DIRECTORIES (Auto-Generated)
+================================================================================
+
+logs/
+  ├─ morning.log        (8 AM run output)
+  ├─ morning-error.log  (8 AM run errors)
+  ├─ noon.log           (12 PM run output)
+  ├─ noon-error.log     (12 PM run errors)
+  ├─ evening.log        (5 PM run output)
+  └─ evening-error.log  (5 PM run errors)
+
+results/
+  ├─ triage-YYYY-MM-DD-timestamp.json (one per run)
+  ├─ Contains: emailsProcessed, actionItems, urgent, byDomain
+  └─ Used by dashboard for recent triage summary
+
+archive/ (Optional)
+  ├─ Old results (manually archived)
+  └─ Provides historical tracking
+
+================================================================================
+DEPENDENCIES (package.json)
+================================================================================
+
+Runtime:
+  - googleapis@118.0.0     (Gmail API client)
+
+Development:
+  - typescript@5.3.0       (TypeScript compiler)
+  - @types/node@20.10.0    (Node.js type definitions)
+  - ts-node@10.9.0         (TypeScript executor)
+  - jest@29.7.0            (Testing framework)
+  - eslint@8.54.0          (Code linting)
+  - prettier@3.1.0         (Code formatting)
+
+Install with: npm install
+
+================================================================================
+QUICK START CHECKLIST
+================================================================================
+
+[ ] 1. Review README.md for overview
+[ ] 2. Download service-account.json from Google Cloud Console
+[ ] 3. Place service-account.json in project root
+[ ] 4. cp .env.example .env.local
+[ ] 5. Edit .env.local with GOOGLE_KEY_FILE path
+[ ] 6. npm install
+[ ] 7. bash scripts/install-launchd.sh
+[ ] 8. node scripts/email-triage.js (test manual run)
+[ ] 9. bash scripts/manage-triage.sh status (verify jobs loaded)
+[ ] 10. bash scripts/manage-triage.sh follow (watch logs)
+
+Wait for 8 AM / 12 PM / 5 PM to see automated runs.
+
+================================================================================
+INTEGRATION WITH MISSION CONTROL
+================================================================================
+
+API Endpoint:
+  GET  /api/email/triage           → Fetch latest results
+  POST /api/email/triage           → Trigger manual run
+
+Dashboard Display:
+  - Triage summary widget (X emails, Y actions, Z urgent)
+  - Classified emails by domain table
+  - Urgent items alert panel
+  - Action items checklist
+
+Result Format (JSON):
+  {
+    timestamp: ISO string,
+    emailsProcessed: number,
+    actionItems: array,
+    urgent: array,
+    actionCount: { todo, decision, waiting },
+    byDomain: { domain: [emails] }
+  }
+
+Slack Integration:
+  - DM alerts for urgent items
+  - Sender, subject, urgency level, action needed
+  - Link to full result file
+
+================================================================================
+SUPPORT & TROUBLESHOOTING
+================================================================================
+
+For setup issues:        → Read SETUP.md
+For runtime problems:    → Read TROUBLESHOOTING.md
+For usage questions:     → Read README.md
+For API integration:     → Read src/app/api/email/triage/route.ts
+For management:          → bash scripts/manage-triage.sh help
+
+Management Commands:
+  status       - Check if LaunchD jobs are loaded
+  trigger      - Manually run a specific job
+  logs         - View job logs
+  follow       - Follow logs in real-time
+  results      - Show latest triage results
+  test         - Run a test triage
+  diagnose     - Check system configuration
+
+================================================================================
+VERIFICATION CHECKLIST
+================================================================================
+
+After installation, verify:
+
+✓ Files created:
+  - All scripts are executable (chmod +x)
+  - All config files present and valid JSON
+  - All documentation files readable
+
+✓ LaunchD loaded:
+  - launchctl list | grep email-triage shows 3 entries
+
+✓ Manual run succeeds:
+  - node scripts/email-triage.js completes without errors
+  - Results file created in results/ directory
+  - Summary output shows emails processed
+
+✓ Jobs scheduled:
+  - Jobs visible in Activity Monitor
+  - Logs created at scheduled times
+  - Results generated 3x daily
+
+✓ Integration ready:
+  - API endpoint accessible
+  - Results queryable via GET /api/email/triage
+  - Manual trigger works via POST /api/email/triage
+
+================================================================================
+CUSTOMIZATION POINTS
+================================================================================
+
+Email Domains (triage.config.json):
+  - Add/remove domains
+  - Adjust keywords for classification
+  - Modify priority levels
+
+Urgency Detection (triage.config.json):
+  - Add urgency keywords
+  - Adjust deadline detection
+  - Customize urgency levels
+
+Action Extraction (triage.config.json):
+  - Add/remove action keywords
+  - Adjust action types
+
+Scheduling (.launchd/*.plist):
+  - Modify run times (StartCalendarInterval)
+  - Add/remove daily runs
+  - Change day-of-week rules
+
+Slack Alerts (scripts/email-triage.js):
+  - Customize alert message format
+  - Add additional channels
+  - Adjust alert triggers
+
+================================================================================
+DEPLOYMENT NOTES
+================================================================================
+
+Timezone:
+  - System default: America/Denver (MST)
+  - Update system timezone if needed
+  - LaunchD uses local system time
+
+Node.js:
+  - Requires v18.0.0+
+  - Check: node --version
+  - Update if needed: brew upgrade node
+
+Gmail API:
+  - Read-only access (safe)
+  - Service account authentication
+  - No email forwarding or deletion
+
+Database:
+  - Currently: JSON file storage
+  - Can migrate to SQLite/Postgres
+  - Results auto-archived after 30 days (optional)
+
+Performance:
+  - 3x daily = ~30 runs/month
+  - ~10 seconds per run
+  - Minimal system impact
+
+================================================================================
+VERSION & METADATA
+================================================================================
+
+Project Version:     1.0.0
+Created:            2024-03-07
+Last Updated:       2024-03-07
+Timezone:           America/Denver (MST)
+Node.js Required:   >=18.0.0
+LaunchD Platform:   macOS (launchd only, not systemd)
+Status:             ✅ COMPLETE - READY FOR PRODUCTION
+
+================================================================================

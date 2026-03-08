@@ -1,0 +1,72 @@
+{
+  "domains": {
+    "turbotenant": {
+      "label": "TurboTenant",
+      "keywords": ["turbotenant", "tenant", "property management", "lease"],
+      "emails": ["@turbotenant.com"],
+      "priority": "high",
+      "context": "CEO/CoS context, meetings, decisions"
+    },
+    "wetried": {
+      "label": "WeTried.it",
+      "keywords": ["wetried", "business", "revenue", "partnership", "deal"],
+      "emails": ["@wetried.it", "@wetried.com"],
+      "priority": "high",
+      "context": "Business, revenue, partnerships"
+    },
+    "gamebuzz": {
+      "label": "GameBuzz",
+      "keywords": ["gamebuzz", "twitter", "growth", "partnership", "campaign"],
+      "emails": ["@gamebuzzapp.com"],
+      "priority": "medium",
+      "context": "Twitter growth, partnerships"
+    },
+    "kids_family": {
+      "label": "Kids/Family",
+      "keywords": ["school", "parent", "kid", "child", "family", "activity", "pickup", "homework"],
+      "emails": [],
+      "priority": "medium",
+      "context": "School, health, activities"
+    },
+    "personal_health": {
+      "label": "Personal Health",
+      "keywords": ["fitness", "doctor", "health", "wellness", "appointment", "prescription", "medical"],
+      "emails": [],
+      "priority": "medium",
+      "context": "Fitness, doctor, wellness"
+    }
+  },
+  "urgencyPatterns": {
+    "critical": {
+      "keywords": ["URGENT", "EMERGENCY", "CRITICAL", "911"],
+      "deadline": 0,
+      "level": 5
+    },
+    "high": {
+      "keywords": ["ASAP", "IMMEDIATE", "PRIORITY", "deadline today", "deadline tomorrow"],
+      "deadline": 1,
+      "level": 4
+    },
+    "medium": {
+      "keywords": ["important", "action required", "needs response", "follow up"],
+      "deadline": 3,
+      "level": 3
+    }
+  },
+  "actionKeywords": {
+    "todo": ["TODO", "action item", "please", "can you", "would you", "need to"],
+    "decision": ["decision", "approve", "reject", "decide", "feedback needed", "opinion"],
+    "waiting": ["waiting", "depends on", "blocked by", "pending", "awaiting"]
+  },
+  "responseTemplates": {
+    "acknowledgment": "Thanks for reaching out. I've received your message and will review shortly.",
+    "needsTime": "Thanks for this. Let me look into it and get back to you.",
+    "needsDecision": "I'll review and provide feedback by end of day.",
+    "default": "Thanks for the email. I'll follow up shortly."
+  },
+  "slackAlertTemplate": {
+    "urgentIcon": "🚨",
+    "actionIcon": "✅",
+    "decisionIcon": "🎯"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "metadata": {
+    "account": "@gamebuzzapp",
+    "lastUpdated": "2026-03-07T23:54:46Z",
+    "nextUpdate": "2026-03-08T06:00:00Z",
+    "updateFrequency": "daily"
+  },
+  "current": {
+    "followers": null,
+    "monthlyImpressions": null,
+    "engagementRate": null,
+    "postsLast30Days": null,
+    "accountAge": {
+      "createdAt": null,
+      "daysOld": null
+    }
+  },
+  "historical": [
+    {
+      "date": "2026-03-07",
+      "followers": null,
+      "dailyFollowerGrowth": null,
+      "monthlyImpressions": null,
+      "engagementRate": null,
+      "topPostEngagement": {
+        "text": null,
+        "impressions": null,
+        "engagements": null
+      },
+      "dataSource": "manual-first-entry",
+      "notes": "First tracking entry; awaiting API integration"
+    }
+  ],
+  "goals": {
+    "shortTerm": {
+      "milestone": "1,000 followers (X Premium eligibility)",
+      "timelineWeeks": 12,
+      "requiredMonthlyGrowth": 250,
+      "rationale": "Minimum threshold for X Premium monetization"
+    },
+    "midTerm": {
+      "milestone": "10,000 followers (Brand partnerships)",
+      "timelineWeeks": 24,
+      "requiredMonthlyGrowth": 250,
+      "rationale": "Optimal size for brand deal outreach"
+    },
+    "longTerm": {
+      "milestone": "25,000+ followers (Ad revenue optimization)",
+      "timelineWeeks": 48,
+      "requiredMonthlyGrowth": 350,
+      "rationale": "X Monetization program threshold + strong revenue potential"
+    }
+  },
+  "monetizationPath": {
+    "phase1": {
+      "name": "X Premium Monetization",
+      "triggerFollowers": 1000,
+      "targetDate": null,
+      "revenueProjection": "$200-500/month",
+      "status": "awaiting_eligibility",
+      "setupSteps": [
+        "Enable Ads & Monetization in X Pro settings",
+        "Configure ad preferences",
+        "Set monthly revenue goal",
+        "Enable analytics dashboard"
+      ]
+    },
+    "phase2": {
+      "name": "Brand Partnerships",
+      "startOutreachAt": 5000,
+      "triggerFollowers": 10000,
+      "targetDate": null,
+      "revenueProjection": "$500-2000/month",
+      "status": "awaiting_outreach",
+      "outreachTargets": [
+        "Sports betting platforms",
+        "Gaming equipment brands",
+        "Fantasy sports communities",
+        "Sports media platforms"
+      ]
+    },
+    "phase3": {
+      "name": "Premium Media Partnerships",
+      "triggerFollowers": 25000,
+      "targetDate": null,
+      "revenueProjection": "$2000+/month",
+      "status": "future",
+      "opportunities": [
+        "Exclusive content deals",
+        "Newsletter sponsorships",
+        "Affiliate revenue programs"
+      ]
+    }
+  },
+  "alerts": {
+    "enabled": true,
+    "thresholds": [
+      {
+        "metric": "followers",
+        "value": 1000,
+        "action": "notify_for_premium_eligibility",
+        "triggered": false
+      },
+      {
+        "metric": "followers",
+        "value": 5000,
+        "action": "begin_brand_partnership_outreach",
+        "triggered": false
+      },
+      {
+        "metric": "followers",
+        "value": 10000,
+        "action": "scale_brand_partnerships",
+        "triggered": false
+      },
+      {
+        "metric": "followers",
+        "value": 25000,
+        "action": "activate_premium_media_deals",
+        "triggered": false
+      }
+    ]
+  },
+  "apiIntegration": {
+    "status": "pending",
+    "requiredEndpoints": [
+      "GET /api/v2/tweets/search/recent (for engagement)",
+      "GET /api/v2/users/:id/tweets (for content analysis)",
+      "GET /api/v2/users/:id (for account metrics)"
+    ],
+    "notes": "Awaiting X API v2 credentials setup"
+  }
+}

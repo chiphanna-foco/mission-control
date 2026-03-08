@@ -1,0 +1,78 @@
+{
+  "pageants": [
+    {
+      "id": "miss-universe-2026",
+      "name": "Miss Universe 2026 State Competition",
+      "deadline": "2026-04-15T23:59:59Z",
+      "urgencyLevel": 1,
+      "notes": "State preliminary round",
+      "requirements": {
+        "photos": {
+          "needed": true,
+          "count": 3,
+          "specs": "Professional headshot, evening gown, swimsuit/athletic wear",
+          "submitted": false,
+          "dueDate": "2026-04-10T23:59:59Z"
+        },
+        "forms": {
+          "needed": true,
+          "list": [
+            "entry-form",
+            "media-release-form",
+            "background-check"
+          ],
+          "submitted": false,
+          "dueDate": "2026-04-12T23:59:59Z"
+        },
+        "payment": {
+          "needed": true,
+          "amount": 350,
+          "method": "stripe",
+          "submitted": false,
+          "dueDate": "2026-04-15T23:59:59Z"
+        }
+      },
+      "notifications": {
+        "sent_7_days": false,
+        "sent_7_days_date": null,
+        "sent_1_day": false,
+        "sent_1_day_date": null
+      }
+    },
+    {
+      "id": "teen-america-2026",
+      "name": "Teen America 2026 Regional",
+      "deadline": "2026-05-20T23:59:59Z",
+      "urgencyLevel": 2,
+      "notes": "Regional competition - optional",
+      "requirements": {
+        "photos": {
+          "needed": true,
+          "count": 2,
+          "specs": "Headshot, casual",
+          "submitted": false,
+          "dueDate": "2026-05-15T23:59:59Z"
+        },
+        "forms": {
+          "needed": true,
+          "list": ["entry-form"],
+          "submitted": false,
+          "dueDate": "2026-05-18T23:59:59Z"
+        },
+        "payment": {
+          "needed": true,
+          "amount": 200,
+          "method": "stripe",
+          "submitted": false,
+          "dueDate": "2026-05-20T23:59:59Z"
+        }
+      },
+      "notifications": {
+        "sent_7_days": false,
+        "sent_7_days_date": null,
+        "sent_1_day": false,
+        "sent_1_day_date": null
+      }
+    }
+  ]
+}

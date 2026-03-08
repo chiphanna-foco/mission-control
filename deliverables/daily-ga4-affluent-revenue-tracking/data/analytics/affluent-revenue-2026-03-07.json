@@ -1,0 +1,73 @@
+{
+  "date": "2026-03-07",
+  "timestamp": "2026-03-07T23:45:55.679Z",
+  "networks": {
+    "Amazon Associates": {
+      "emails": [
+        {
+          "date": "2026-03-06T22:00:00.000Z",
+          "clicks": 556,
+          "commissions": 31.62
+        }
+      ],
+      "totals": {
+        "clicks": 280,
+        "commissions": 46.08
+      }
+    },
+    "ShareASale": {
+      "emails": [
+        {
+          "date": "2026-03-06T19:00:00.000Z",
+          "clicks": 157,
+          "commissions": 18.94
+        }
+      ],
+      "totals": {
+        "clicks": 67,
+        "commissions": 5.74
+      }
+    },
+    "Impact": {
+      "emails": [
+        {
+          "date": "2026-03-06T16:00:00.000Z",
+          "clicks": 134,
+          "commissions": 3.75
+        }
+      ],
+      "totals": {
+        "clicks": 78,
+        "commissions": 12.48
+      }
+    }
+  },
+  "totals": {
+    "clicks": 425,
+    "commissions": 64.3,
+    "sales": 15
+  },
+  "rawEmails": [
+    {
+      "id": "email-1",
+      "from": "associates-noreply@amazon.com",
+      "subject": "Your Associates Report",
+      "date": "2026-03-06T22:00:00.000Z",
+      "network": "Amazon Associates"
+    },
+    {
+      "id": "email-2",
+      "from": "report@shareasale.com",
+      "subject": "ShareASale Daily Report",
+      "date": "2026-03-06T19:00:00.000Z",
+      "network": "ShareASale"
+    },
+    {
+      "id": "email-3",
+      "from": "reports@impact.com",
+      "subject": "Impact Daily Performance Report",
+      "date": "2026-03-06T16:00:00.000Z",
+      "network": "Impact"
+    }
+  ]
+}

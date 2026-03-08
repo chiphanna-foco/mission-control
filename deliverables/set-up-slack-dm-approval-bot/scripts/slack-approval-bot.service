@@ -1,0 +1,19 @@
+[Unit]
+Description=Slack Approval Bot - Sync Service
+After=network.target
+Wants=slack-approval-bot.timer
+
+[Service]
+Type=oneshot
+User=REPLACE_USERNAME
+WorkingDirectory=/home/REPLACE_USERNAME/Documents/Shared/projects/set-up-slack-dm-approval-bot
+ExecStart=/usr/bin/node %d/../sync-approval-status.ts
+Environment="DATA_DIR=/home/REPLACE_USERNAME/Documents/Shared/projects/set-up-slack-dm-approval-bot/data"
+Environment="DASHBOARD_WEBHOOK_URL=http://localhost:3000/api/approval-queue/webhook"
+Environment="NODE_ENV=production"
+StandardOutput=journal
+StandardError=journal
+RestartOnFailure=no
+
+[Install]
+WantedBy=multi-user.target

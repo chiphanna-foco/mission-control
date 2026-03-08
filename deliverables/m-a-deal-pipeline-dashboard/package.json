@@ -1,0 +1,21 @@
+{
+  "name": "m-a-deal-pipeline-dashboard",
+  "version": "1.0.0",
+  "description": "M&A deal pipeline overview - stage, dates, blockers, due diligence status at a glance",
+  "type": "module",
+  "main": "src/engine.js",
+  "scripts": {
+    "start": "node src/cli.js",
+    "dev": "node src/dashboard.js",
+    "setup": "node src/setup.js",
+    "pipeline": "node src/cli.js pipeline",
+    "status": "node src/cli.js status",
+    "report": "node src/cli.js report"
+  },
+  "dependencies": {
+    "uuid": "^9.0.0",
+    "date-fns": "^2.30.0",
+    "chalk": "^5.3.0",
+    "commander": "^11.0.0"
+  }
+}
