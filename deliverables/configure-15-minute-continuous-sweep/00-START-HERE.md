@@ -1,8 +1,8 @@
-# START HERE - Mission Control 15-Minute Continuous Sweep
+# START HERE - Mission Control 60-Minute Continuous Sweep
 
 ## Quick Overview
 
-This project implements a **15-minute automated monitoring system** that continuously checks:
+This project implements a **60-minute automated monitoring system** that continuously checks:
 - 📧 Gmail (unread messages)
 - 💬 Slack (mentions)
 - ⚠️ Stalled tasks (no update >2h)
@@ -14,7 +14,7 @@ And automatically routes findings to appropriate agents for action.
 
 ## What Was Built
 
-✅ **Launchd Daemon** - Runs every 15 minutes (900s)
+✅ **Launchd Daemon** - Runs every 60 minutes (3600s)
 ✅ **API Endpoint** - POST/GET `/api/orchestration/sweep`
 ✅ **Health Check Script** - 4 subcommands for testing and monitoring
 ✅ **Complete Documentation** - Setup guides, troubleshooting, examples

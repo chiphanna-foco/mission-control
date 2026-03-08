@@ -12,7 +12,7 @@
     </array>
     
     <key>StartInterval</key>
-    <integer>900</integer>
+    <integer>3600</integer>
     
     <key>StandardErrorPath</key>
     <string>/Users/chipai/Documents/Shared/projects/configure-15-minute-continuous-sweep/sweep.log</string>

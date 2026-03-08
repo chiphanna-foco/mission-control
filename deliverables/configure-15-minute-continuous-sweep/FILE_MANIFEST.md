@@ -140,7 +140,7 @@ ls -lh ~/Library/LaunchDaemons/com.chipai.mission-control.sweep.plist
 ### com.chipai.mission-control.sweep.plist (1.2K)
 - Label: `com.chipai.mission-control.sweep`
 - Program: `scripts/life-sync-check.sh sweep`
-- Start Interval: 900 seconds (15 minutes)
+- Start Interval: 3600 seconds (60 minutes)
 - Standard output/error to `sweep.log`
 - Environment variables configured
 - Runs at load

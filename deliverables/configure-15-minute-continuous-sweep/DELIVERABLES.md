@@ -17,7 +17,7 @@ Successfully built a complete 15-minute continuous sweep configuration for Missi
 **Also at:** `~/Documents/Shared/projects/configure-15-minute-continuous-sweep/com.chipai.mission-control.sweep.plist` (backup copy)
 
 **Details:**
-- ✅ Runs every 900 seconds (15 minutes)
+- ✅ Runs every 3600 seconds (60 minutes)
 - ✅ Executes `scripts/life-sync-check.sh sweep`
 - ✅ Logs to `sweep.log`
 - ✅ Runs at system load
@@ -169,7 +169,7 @@ launchctl load ~/Library/LaunchDaemons/com.chipai.mission-control.sweep.plist
 ## Implementation Details
 
 ### 1. Launchd Scheduling
-- **Interval:** 900 seconds (15 minutes)
+- **Interval:** 3600 seconds (60 minutes)
 - **Execution:** `scripts/life-sync-check.sh sweep`
 - **Output:** Captured in `sweep.log`
 - **Error Handling:** Continues on errors, logs them
@@ -323,7 +323,7 @@ watch -n 10 'stat sweep-state.json | grep Modify'
 
 ## Success Criteria - All Met ✅
 
-- ✅ Launchd plist exists and verifies correct 900s interval
+- ✅ Launchd plist exists and verifies correct 3600s interval
 - ✅ POST /api/orchestration/sweep endpoint implemented with all checks
 - ✅ GET /api/orchestration/sweep for status retrieval
 - ✅ Bearer token authentication working

@@ -62,7 +62,7 @@ get_next_sweep_time() {
     if [ -f "$STATE_FILE" ]; then
         local lastSweep=$(jq -r '.timestamp' "$STATE_FILE" 2>/dev/null)
         if [ -n "$lastSweep" ]; then
-            # Add 15 minutes (900 seconds) to last sweep
+            # Add 60 minutes (3600 seconds) to last sweep
             local nextTime=$(date -j -f "%Y-%m-%dT%H:%M:%S" -v +15M "$lastSweep" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || echo "unknown")
             echo "$nextTime"
         else

@@ -20,7 +20,7 @@ launchctl load ~/Library/LaunchDaemons/com.chipai.mission-control.sweep.plist
 
 ## What It Does
 
-Every 15 minutes (900 seconds), the sweep:
+Every 60 minutes (3600 seconds), the sweep:
 
 1. **Checks Gmail** — Counts unread messages
 2. **Checks Slack** — Detects recent mentions
@@ -317,7 +317,7 @@ SLACK_BOT_TOKEN=xoxb-1234567890...
 
 | Metric | Value |
 |--------|-------|
-| Frequency | Every 15 minutes (900s) |
+| Frequency | Every 60 minutes (3600s) |
 | Typical Duration | 5-10 seconds |
 | Log Size Growth | ~100 bytes per sweep |
 | State File Size | ~1-2 KB per sweep |
